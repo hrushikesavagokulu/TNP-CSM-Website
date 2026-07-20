@@ -5,12 +5,11 @@ import SearchStudents from '../../components/shared/SearchStudents';
 
 const TILES = [
   { name: 'Announcements', count: 'Coming Soon', icon: '🔔', desc: 'Department notices, placement news and notifications' },
-  { name: 'Events & Coding Contests', count: 'Coming Soon', icon: '📅', desc: 'Register for upcoming events and hackathons' },
-  { name: 'Skill Roadmap', count: 'Coming Soon', icon: '🗺️', desc: 'Verify roadmap goals and check academic progress' },
-  { name: 'Certifications', count: 'Coming Soon', icon: '🏅', desc: 'Upload NPTEL, Coursera and technical certs' },
+  { name: 'Events', count: 'Coming Soon', icon: '📅', desc: 'Register for mock interviews, coding contests, and upload event certificates (NPTEL, Coursera, tech certs)' },
+  { name: 'Semester-wise Skill Roadmap', count: 'Coming Soon', icon: '🗺️', desc: 'Track semester-wise roadmap goals and check academic progress' },
+  { name: 'Semester Certifications & Achievements', count: 'Coming Soon', icon: '🏅', desc: 'Manage and view your semester-wise certifications and achievements' },
   { name: 'Company Profiles', count: 'Coming Soon', icon: '🏢', desc: 'Browse recruiting partners and job descriptions' },
   { name: 'Alumni Repository', count: 'Coming Soon', icon: '🎓', desc: 'Browse interview experiences and projects' },
-  { name: 'Achievements Directory', count: 'Coming Soon', icon: '✨', desc: 'View student achievements and academic awards' },
   { name: 'Learning Resources', count: 'Coming Soon', icon: '📚', desc: 'Curated study materials, lab guides and notes' },
   { name: 'Resume Guide', count: 'Coming Soon', icon: '📄', desc: 'Build and format professional resumes' },
   { name: 'Connect Sphere', count: 'Coming Soon', icon: '💬', desc: 'Chat and coordinate with fellow classmates' },

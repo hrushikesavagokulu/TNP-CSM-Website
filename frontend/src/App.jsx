@@ -14,6 +14,7 @@ import Register      from './pages/public/Register';
 import Login         from './pages/public/Login';
 import ForgotPassword from './pages/public/ForgotPassword';
 import AdminLogin    from './pages/public/AdminLogin';
+import Home          from './pages/public/Home';
 import DashboardHome from './pages/dashboard/DashboardHome';
 import Profile       from './pages/dashboard/Profile';
 
@@ -21,46 +22,7 @@ import Profile       from './pages/dashboard/Profile';
 import AdminHome     from './pages/admin/AdminHome';
 import ManageStudents from './pages/admin/ManageStudents';
 import ManageAdmins   from './pages/admin/ManageAdmins';
-
-// ── Phase 0 health-check component (inline — will be replaced in Phase 4 Home page)
-import { useEffect, useState } from 'react';
-import api from './services/api';
-
-function PlaceholderHome() {
-  const [health,  setHealth]  = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error,   setError]   = useState(null);
-
-  useEffect(() => {
-    api.get('/health')
-      .then((res) => setHealth(res.data))
-      .catch((err) => setError(err.message))
-      .finally(() => setLoading(false));
-  }, []);
-
-  return (
-    <div className="min-h-[calc(100vh-4rem)] flex flex-col items-center justify-center p-8 animate-fade-in">
-      <div className="text-center mb-10">
-        <h1 className="text-4xl font-bold text-[var(--color-text-primary)] mb-2">TMP Platform</h1>
-        <p className="text-[var(--color-text-muted)]">Home page coming in Phase 4</p>
-        <span className="inline-block mt-3 px-3 py-1 text-xs font-medium rounded-full
-          bg-[var(--color-accent-subtle)] text-[var(--color-accent)] border border-[var(--color-accent-border)]">
-          Phase 3 · Admin Foundation
-        </span>
-      </div>
-
-      <div className="w-full max-w-md glass-card p-6">
-        <div className="flex items-center gap-2 mb-4 text-sm font-medium text-[var(--color-text-secondary)]">
-          <div className={`w-2 h-2 rounded-full ${loading ? 'bg-amber-400 animate-pulse' : error ? 'bg-red-400' : 'bg-emerald-400'}`} />
-          Backend Health Check
-        </div>
-        {loading && <p className="text-sm text-[var(--color-text-muted)]">Pinging...</p>}
-        {error   && <p className="text-sm text-[var(--color-error)]">{error}</p>}
-        {health  && <pre className="text-xs font-mono text-emerald-400 whitespace-pre-wrap">{JSON.stringify(health, null, 2)}</pre>}
-      </div>
-    </div>
-  );
-}
+import ManageDepartmentInfo from './pages/admin/ManageDepartmentInfo';
 
 // ── Shared Public Layout (displays main Navbar) ──────────────────────────────
 function PublicLayout() {
@@ -82,7 +44,7 @@ export default function App() {
         <Routes>
           {/* Public Routes with Navbar */}
           <Route element={<PublicLayout />}>
-            <Route path="/" element={<PlaceholderHome />} />
+            <Route path="/" element={<Home />} />
             <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
             <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
             <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
@@ -111,6 +73,7 @@ export default function App() {
             <Route index element={<AdminHome />} />
             <Route path="students" element={<ManageStudents />} />
             <Route path="admins" element={<ManageAdmins />} />
+            <Route path="department-info" element={<ManageDepartmentInfo />} />
 
             {/* Catch-all stubs for future admin features */}
             <Route path="*" element={
