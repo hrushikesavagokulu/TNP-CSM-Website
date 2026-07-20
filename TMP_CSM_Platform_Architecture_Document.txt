@@ -1,0 +1,1760 @@
+SYSTEM DESIGN DOCUMENT
+
+TMP — CSM Department Web
+Platform
+High-Level & Low-Level Architecture, Page-by-Page Specification,
+File Structures, User Flows & Deployment Design
+
+React (Vite) · Express.js · MongoDB · Redis · Socket.io · Docker
+
+GPREC — Department of CSM
+
+1
+
+TMP — CSM Department Web Platform
+Complete System Design Document (HLD + LLD)
+GPREC — Department of CSM (Computer Science & Machine Learning)
+Stack: React (Vite) · Express.js · MongoDB · Redis · Socket.io · Docker Prepared as: Full Architecture & Page-Level Specification
+Document
+
+1. Project Overview
+TMP is the official web platform for the CSM department. It has three access tiers:
+1. Public (unauthenticated) — Home page with department info, faculty links, scheme/syllabus links.
+2. Student (authenticated) — Personal dashboard with profile, announcements, events, skill roadmap, certifications, company info,
+alumni repositories, achievements, learning resources, resume guide, and a community chat ("Connect Sphere").
+3. Admin (authenticated, elevated role) — Full control panel to manage every piece of content on the platform, manage students/
+admins in bulk, run events, moderate chat, and monitor student data.
+The defining design principle across the platform: content modules (skill roadmap, achievements, company info, certifications)
+must be schema-flexible, i.e. admins can add content blocks of any type (text, link, video, file, image) in any order, rather than the
+frontend enforcing a rigid fixed template. This drives a specific data-modeling decision explained in Section 3.1.
+
+2. High-Level Design (HLD)
+2.1 Architecture Diagram
+┌─────────────────────────┐
+│
+Browser
+│
+│ (Student / Admin / Guest)│
+└────────────┬─────────────┘
+│ HTTPS
+┌────────────▼─────────────┐
+│
+Nginx Reverse Proxy │
+│
+(SSL termination, /api │
+│
+-> backend, / -> FE)
+│
+└──────┬─────────────┬──────┘
+│
+│
+┌───────────────▼───┐
+┌─────▼───────────────┐
+│ Frontend Container │
+│ Backend Container
+│
+│ React (Vite build) │
+│ Express + Socket.io │
+│ served by Nginx
+│
+│ Node 20
+│
+└───────────────────────┘
+└───┬──────┬────────┬───┘
+│
+│
+│
+┌─────────────────▼┐ ┌───▼───┐ ┌──▼─────────┐
+│ MongoDB Container │ │ Redis │ │ External APIs │
+│ (Mongoose ODM)
+│ │Container│ │ Gmail SMTP,
+│
+│ Persistent volume
+│ │(cache, │ │ Google Drive, │
+└───────────────────────┘ │OTP TTL, │ │ Zoom S2S OAuth │
+│Socket.io│ └───────────────┘
+│adapter) │
+└─────────┘
+
+Each box above = one Docker container, orchestrated by docker-compose.yml , on a shared bridge network tmp-net . Only Nginx is
+exposed to the host; all inter-container traffic (frontend→backend, backend→mongo, backend→redis) happens over the internal Docker
+network.
+
+2
+
+2.2 Technology Stack
+Layer
+
+Technology
+
+Reason
+
+Frontend framework
+
+React 18 + Vite
+
+Fast dev/build, wide ecosystem
+
+Frontend styling
+
+Tailwind CSS (with CSS variables for theme)
+
+Rapid, consistent dark/light theming
+
+Frontend server state
+
+React Query (TanStack Query)
+
+Caching, refetching, avoids Redux boilerplate
+
+Frontend routing
+
+React Router v6
+
+Nested routes for dashboard/admin
+
+Backend framework
+
+Express.js (Node 20)
+
+Simplicity, huge middleware ecosystem
+
+Database
+
+MongoDB + Mongoose
+
+Flexible schema fits "admin adds any content
+block" requirement
+
+Cache / TTL / pubsub
+
+Redis
+
+OTP expiry, rate limiting, Socket.io scaling
+
+Real-time
+
+Socket.io (Redis adapter)
+
+Connect Sphere chat, live unread badges
+
+Auth
+
+JWT (access + refresh) + bcrypt
+
+Stateless, standard
+
+Mail
+
+Nodemailer (SMTP - Gmail/SendGrid)
+
+OTP delivery
+
+File storage (certs)
+
+Google Drive API (service account)
+
+Explicit requirement — per-event folder
+
+File storage (profile/achievement
+
+Local volume or S3-compatible bucket, served via
+
+Simpler than Drive for high-frequency small images
+
+images)
+
+Nginx/Express static
+
+Video conferencing
+
+Zoom Server-to-Server OAuth API
+
+Auto-create meeting on registration
+
+Containerization
+
+Docker + Docker Compose
+
+Isolated, reproducible, matches requirement
+
+Process manager (backend)
+
+PM2 (inside container) or plain node
+
+Restart resilience
+
+Reverse proxy
+
+Nginx
+
+Single entry point, SSL, routing
+
+2.3 Container Architecture
+Exposed Port
+
+Container
+
+Base Image
+
+tmp-frontend
+
+node:20-alpine (build) → nginx:alpine
+
+(internal)
+
+Volume
+
+80
+
+— (static build output)
+
+(serve)
+tmp-backend
+
+node:20-alpine
+
+5000
+
+/app/uploads (local file
+fallback)
+
+tmp-mongo
+
+mongo:7
+
+27017
+
+mongo-data:/data/db
+
+tmp-redis
+
+redis:7-alpine
+
+6379
+
+redis-data:/data
+
+tmp-nginx-proxy (optional but
+
+nginx:alpine
+
+80/443 (host-facing)
+
+SSL certs volume
+
+recommended)
+
+All containers sit on a custom bridge network tmp-net so they resolve each other by service name ( backend , mongo , redis ) rather
+than IP.
+
+2.4 Core System Components
+1. Auth Service — registration, login, JWT issuance/refresh, OTP generation/verification, password reset.
+2. User/Profile Service — CRUD on the student profile, field-level visibility enforcement.
+3. Content Services (flexible schema) — Skill Roadmap, Certifications, Company Info, Alumni Repos, Achievements, Learning
+Resources, Resume Templates, Scheme Links.
+4. Announcement Service — group-targeted announcements (year/batch-type), read/unread tracking.
+5. Event Service — event lifecycle, registration, Zoom meeting provisioning, Google Drive certificate folder provisioning, auto-expiry via
+cron.
+
+3
+
+6. Connect Sphere Service — chat spaces (one permanent + admin-created ones), messages, reactions, moderation.
+7. Admin Service — student bulk import (Excel), admin management, cross-cutting moderation actions.
+8. Notification/Realtime Layer — Socket.io namespaces for chat + unread badges; scheduled jobs (node-cron) for expiry/cleanup.
+
+2.5 Data Flow Overview (Request Lifecycle)
+Browser → Nginx → Backend (Express)
+1. Middleware chain: CORS → Helmet → rate-limiter (Redis) → JSON parse
+2. Auth middleware: verify JWT from httpOnly cookie / Authorization header
+3. Role middleware: requireRole('student'|'admin') where applicable
+4. Controller: validates input (Joi/Zod) → calls service layer
+5. Service layer: talks to Mongoose models / Redis / Google Drive / Zoom / Mail
+6. Response shaped per-role (e.g., profile fields hidden for peer view)
+7. JSON response → Frontend → React Query cache → UI render
+
+2.6 Security Architecture
+• Passwords: bcrypt hash (cost factor 12), never returned in any API response.
+• JWT: short-lived access token (15 min) in memory/localStorage is avoided — stored in httpOnly, Secure, SameSite=strict cookie;
+refresh token similarly, rotated on use.
+• OTP: 6-digit numeric, hashed (bcrypt) before storing in Mongo/Redis, TTL 5–10 minutes, max 5 attempts, rate-limited per email
+(Redis).
+• RBAC: every mutating route explicitly declares required role; profile responses are shaped server-side per viewer role (never trust
+frontend to hide fields).
+• File upload validation: MIME-type allow-list (images/PDF only for certificates), file-size caps, virus-scan hook placeholder (ClamAV
+optional).
+• Rate limiting: express-rate-limit + Redis store on /auth/* and /otp/* routes to prevent brute force.
+• Helmet.js for HTTP security headers; CORS locked to the frontend origin only.
+• All Drive/Zoom credentials stored as Docker secrets / .env , never committed, never exposed to frontend.
+
+3. Low-Level Design (LLD)
+3.1 Database Schema Design
+Two schema patterns are used deliberately:
+• Fixed-field collections - User, Event, EventRegistration, OtpToken, Message - these have a known, stable shape.
+• Flexible block-content collections - SkillRoadmap items, Achievements, CompanyInfo rounds, Certifications, Learning Resources these use a contentBlocks: [] array of typed objects so admin can add "any type, any order," matching the stated requirement,
+instead of a rigid fixed schema that would need a migration every time a new content type is needed.
+ContentBlockSchema = {
+type: enum['text','link','video','image','file','pdf'], required,
+label: String,
+// e.g. "YouTube Playlist", "Practice Link"
+value: String,
+// URL or text body
+order: Number,
+// for admin-controlled ordering
+}
+
+3.1.1 User
+_id, name, rollNo (unique, indexed), email (unique, indexed), passwordHash,
+phone, parentPhone,
+// hidden from peers, visible to admin only
+branch, year: Enum[1,2,3,4],
+batchType: Enum['smart','tap','itca','nonItca', null], // 3rd/4th yr announcement targeting
+role: Enum['student','admin'],
+isSuperAdmin: Boolean (default false),
+profileImage: String (url),
+// hidden from peers, visible to self + admin
+isHostel: Boolean, laptopAvailable: Boolean,
+mncOrHigherEd: Boolean,
+skills: [String],
+// chosen from admin-curated dropdown list
+links: { linkedin, github, leetcode, portfolio },
+
+4
+
+projectLinks: [String],
+achievements: [{ title, fileUrl, fileType, description, date }],
+progress: {
+// drives profile-card progress bar
+roadmapChecklist: [{ itemId (ref), done: Boolean, doneAt: Date }],
+completionPercent: Number (derived/cached)
+},
+isActive: Boolean (admin can deactivate instead of hard-delete),
+createdAt, updatedAt
+
+Indexes: email (unique), rollNo (unique), compound {year, batchType} for announcement queries.
+3.1.2 OtpToken
+{ email, otpHash, purpose: Enum['register','login-reset','profile-password-change'],
+expiresAt (TTL index, auto-delete), attempts: Number, verified: Boolean }
+
+3.1.3 SchemeLink (dynamic, admin-editable)
+{ schemeYear: String ('2020'|'2023'|future), title, url, order }
+
+3.1.4 Announcement
+{
+title, body, attachments: [{ url, type: Enum['image','doc','excel','video','pdf'] }],
+targetGroups: [{ year: Number, batchType: String|null }],
+postedBy (ref User/Admin), postedAt,
+readBy: [{ user (ref), readAt }]
+}
+
+3.1.5 Event
+{
+title, description, type: Enum['mock-interview','certification-drive','other'],
+startAt, expiresAt,
+zoomMeetingTemplate: { hostEmail },
+driveFolderId,
+allowedUploadTypes: ['image','pdf'],
+createdBy (ref Admin), createdAt
+}
+
+3.1.6 EventRegistration
+{
+event (ref Event), user (ref User),
+registeredAt,
+zoomJoinUrl, zoomStartTime,
+uploads: [{ driveFileId, fileName, fileType, uploadedAt }],
+status: Enum['registered','attended','no-show']
+}
+
+On event deletion, all EventRegistration docs for that event are cascade-deleted.
+3.1.7 SkillRoadmap
+{ semester: Number, skillGroupName: String, mandatory: Boolean,
+description: String, contentBlocks: [ContentBlockSchema], order,
+createdBy (ref Admin), updatedAt }
+
+3.1.8 Certification
+{ semester: Number, name: String, description: String, contentBlocks: [ContentBlockSchema], order }
+
+3.1.9 CompanyInfo
+
+5
+
+{
+name, description, status: Enum['upcoming','ongoing','completed'], academicYear: String,
+eligibilityCriteria: String, ctc, roles: [String],
+rounds: [{ roundName, attended: Number, passed: Number, focusTopics: [String] }],
+totalCleared: Number, prevYearQuestions: [ContentBlockSchema],
+offlineOrOnline: Enum['offline','online'], linkedAlumniRepos: [ref AlumniRepo],
+createdBy, updatedAt
+}
+
+3.1.10 AlumniRepo
+{
+name, rollNo, linkedin, email, profileImage,
+companiesSecured: [{ company (ref CompanyInfo|String), offerType, ctc,
+interviewQuestions: [String], reviews: String, tips: String }],
+createdBy (Admin), createdAt
+}
+
+3.1.11 Achievement
+{ title, description, media: [ContentBlockSchema], date, postedBy (ref Admin) }
+
+3.1.12 LearningResource
+{ skillName: String, contentBlocks: [ContentBlockSchema], order }
+
+3.1.13 ResumeTemplate / ResumeGuide
+{ title, description, contentBlocks: [ContentBlockSchema], order }
+
+3.1.14 ChatSpace (Connect Sphere)
+{ name, isPermanent: Boolean, isLocked: Boolean, createdBy (Admin, null for permanent seed space),
+createdAt }
+
+3.1.15 Message
+{
+space (ref ChatSpace), sender (ref User), content: String,
+attachments: [{ url, type: Enum['image','doc','video'] }],
+reactions: [{ user (ref), type: 'like' }],
+deletedForAll: Boolean, deletedBy (ref Admin, nullable), createdAt
+}
+
+3.2 API Design Conventions
+• Base path: /api/v1/...
+• REST resource-oriented routes, JSON in/out.
+• Standard response envelope: { success, data, message, error } .
+• Pagination: ?page=&limit= on list endpoints (announcements, events, alumni repos, messages).
+• Filtering: ?status=&year=&company= query params on relevant list endpoints.
+• All admin-mutation routes prefixed /api/v1/admin/... and gated by requireRole('admin') .
+
+3.3 Authentication & Authorization Flow
+REGISTER
+Client -> POST /auth/register {name, rollNo, email, phone, branch, password}
+Backend -> validate uniqueness -> generate OTP -> hash+store OtpToken(purpose=register)
+-> email OTP via Nodemailer -> respond "OTP sent"
+Client -> POST /auth/verify-otp {email, otp}
+Backend -> check OtpToken (hash compare, expiry, attempts) -> create User (bcrypt hash)
+
+6
+
+-> issue JWT access+refresh cookies -> respond user object (no password)
+LOGIN
+Client -> POST /auth/login {email, password}
+Backend -> find by email -> bcrypt.compare -> issue JWT cookies -> respond user object
+FORGOT PASSWORD
+Client -> POST /auth/forgot-password {email}
+Backend -> generate OTP(purpose=login-reset) -> email it
+Client -> POST /auth/verify-reset-otp {email, otp} -> backend issues short-lived resetToken
+Client -> POST /auth/reset-password {resetToken, newPassword} -> backend updates passwordHash
+PROTECTED REQUEST
+Client -> any /api/v1/* request with cookie
+Backend authMiddleware -> jwt.verify(accessToken) -> attach req.user
+Backend roleMiddleware (if admin route) -> check req.user.role === 'admin'
+
+3.4 OTP Flow Detail
+1. Generate 6-digit numeric code, otpHash = bcrypt.hash(code) .
+2. Store {email, otpHash, purpose, expiresAt: now+10min, attempts:0} - Mongo TTL index auto-purges expired docs; Redis
+key with EXPIRE used as a fast-path duplicate-send guard (60s cooldown between OTP requests).
+3. Verify: fetch latest un-expired doc for {email, purpose} -> bcrypt.compare(inputOtp, otpHash) -> increment attempts on
+failure -> block after 5 failed attempts -> delete doc on success.
+4. Reused identically for registration, forgot-password, and profile password change.
+
+3.5 File Upload / Google Drive Flow (Event Certificates)
+1. Admin creates Event -> backend calls Drive API (service account) -> creates root folder named EventTitle_EventId -> stores
+driveFolderId on Event doc.
+
+2. Student submits certificates -> backend uploads directly into the event's Drive folder using naming convention
+Name_RollNo_CertificateName.<ext> (one file per certificate).
+
+3. Only image/* and application/pdf MIME types accepted (validated server-side).
+4. EventRegistration.uploads[] stores the returned driveFileId + metadata for in-app listing.
+5. On event auto-expiry (cron passes expiresAt ), the Event + its EventRegistration documents are deleted from MongoDB, but
+the Drive folder and files are retained.
+
+3.6 Zoom Integration Flow
+1. Backend authenticates via Zoom Server-to-Server OAuth, caches the short-lived access token in Redis until near-expiry.
+2. On registration for a mock-interview event, backend calls Zoom POST /users/{hostEmail}/meetings to create/reuse a
+scheduled meeting per the event's config.
+3. Returned join_url + start_time saved to EventRegistration .
+4. Nodemailer emails the registrant the join link and scheduled time.
+
+3.7 Real-Time Design (Socket.io)
+• Namespace /chat : joined per ChatSpace room; events message:new , message:delete , reaction:toggle .
+• Namespace /notify : per-user room; event announcement:new pushes live unread-badge updates without polling.
+• Redis adapter ( @socket.io/redis-adapter ) attached so this scales horizontally across backend replicas later.
+
+3.8 Role-Based Access Control Matrix (summary)
+Resource
+
+Guest
+
+Student
+
+Admin
+
+Home page, scheme links
+
+Read
+
+Read
+
+Read/Write
+
+Register/Login/OTP
+
+Write
+
+-
+
+-
+
+Dashboard, own Profile
+
+-
+
+Read/Write
+
+Read (all fields)
+
+Peer Profile
+
+-
+
+Read (limited fields)
+
+Read (all fields)
+
+Announcements
+
+-
+
+Read (targeted) + mark read
+
+Full CRUD, all targeting
+
+7
+
+Resource
+
+Guest
+
+Student
+
+Admin
+
+Events
+
+-
+
+Read + Register
+
+Full CRUD, view registrations
+
+Roadmap/Certs/Company/Alumni/Achievements/Resources/
+
+-
+
+Read (+ checklist tick on
+
+Full CRUD
+
+Resume
+Connect Sphere
+
+roadmap)
+-
+
+Read/Write in unlocked spaces
+
+Full moderation + space create/
+delete
+
+Student/Admin mgmt, Excel import
+
+-
+
+-
+
+Full
+
+4. Page-by-Page Detailed Specification
+Each page below is documented with: Purpose, UI Layout & Elements, Features, Data Source / API calls, Access Control, and Edge
+Cases / Notes.
+
+4.1 PUBLIC PAGES
+
+4.1.1 Home Page ( / )
+Purpose: Public-facing landing page introducing the department; no authentication required.
+UI Layout & Elements (top to bottom): - Navbar: GPREC logo (left) + "CSM Department" wordmark, a few nav items (Home, About links
+to sections), theme toggle (sun/moon icon), and on the top right: Dashboard button + Login/Register buttons (shown only if not
+authenticated; if authenticated, shows Dashboard + profile avatar instead). - Hero section: CSM department/branch building photo (fullwidth banner). - Scroll section, two-column layout: - Left column: Department motto (short tagline block, admin-editable text). - Right
+column: Vision & Mission (pulled from a DepartmentInfo config doc, editable by admin). - Faculty navigation links section: a grid/list of
+faculty cards, each linking out to the original GPREC college website (external link, target="_blank" ). - Scheme/Syllabus section:
+two (or more, dynamic) cards — "2020 Scheme Syllabus", "2023 Scheme Syllabus" — each a link out to the respective syllabus URL.
+Rendered from the SchemeLink collection so admin can add more scheme years without a code change. - Footer: copied structure from
+the GPREC website footer (contact info, address, social links, copyright).
+Features: - No authentication required to view. - Dark/Light theme toggle in the navbar — applies globally, persisted (see 4.4 below),
+default = light. - All content blocks (motto, vision/mission, faculty links, scheme links) are dynamic — fetched from backend, editable only
+from Admin Dashboard, so the page never needs a redeploy for content changes.
+Data Source / API: - GET /api/v1/public/department-info → motto, vision, mission, hero image. - GET /api/v1/public/
+faculty-links - GET /api/v1/public/scheme-links
+
+Access Control: Fully public, no JWT required.
+Edge Cases: If a scheme link section has zero entries, render nothing (no broken empty card). If department-info hasn't been set by
+admin yet, show placeholder text.
+
+4.1.2 Register Page ( /register )
+Purpose: New student account creation with email OTP verification.
+UI Layout & Elements: - Centered card form with fields: Name, Roll No, College Gmail, Password, Retype Password, Phone Number,
+Branch (dropdown), and a "Send OTP" button next to the email field. - On "Send OTP" click: OTP input field appears (6 boxes), with a
+countdown/resend timer. - "Register" button (disabled until OTP verified). - Link at bottom: "Already have an account? Login".
+Features: - Real-time validation: password strength, password/retype match, roll number/email uniqueness check (debounced backend
+call). - OTP sent to the entered Gmail; backend verifies OTP before account creation is finalized. - Only college Gmail domain accepted
+(regex/domain validation, e.g. @gprec.ac.in — configurable).
+Data Source / API: - POST /auth/check-availability (debounced, checks rollNo/email uniqueness) - POST /auth/register →
+sends OTP - POST /auth/verify-otp → creates account, issues JWT, redirects to Dashboard
+Access Control: Public route; redirects to Dashboard if already logged in.
+Edge Cases: Expired/incorrect OTP shows inline error with remaining attempts; resend is rate-limited (60s cooldown); duplicate roll
+number/email blocks submission with a clear message before OTP is even sent.
+
+8
+
+4.1.3 Login Page ( /login )
+Purpose: Authenticate an existing student or admin.
+UI Layout & Elements: - Centered card with: Email field, Password field (show/hide toggle), "Login" button, "Forgot Password?" link,
+"New here? Register" link.
+Features: - Single form serves both students and admins — role is read from the resolved user document server-side; frontend redirects
+to /dashboard (student) or /admin (admin) based on the returned role.
+Data Source / API: POST /auth/login
+Access Control: Public route; redirects away if already authenticated.
+Edge Cases: Generic "invalid email or password" error (does not reveal which field is wrong, to avoid user enumeration). Account lockout
+after repeated failed attempts (Redis-backed rate limit).
+
+4.1.4 Forgot Password Page ( /forgot-password )
+Purpose: Reset password via OTP-verified flow.
+UI Layout & Elements: - Step 1: Email input + "Send OTP" button. - Step 2: OTP input (appears after step 1) + "Verify" button. - Step 3:
+New Password + Retype Password fields + "Reset Password" button, shown only after OTP is verified. On success, redirect to Login with
+a success toast.
+Features: Same OTP mechanism as registration, purpose-tagged login-reset so tokens can't be reused across flows.
+Data Source / API: POST /auth/forgot-password , POST /auth/verify-reset-otp , POST /auth/reset-password
+Access Control: Public route.
+Edge Cases: If email doesn't exist, still show a generic "If this email exists, an OTP has been sent" message (prevents user enumeration)
+while not actually sending mail.
+
+4.2 STUDENT DASHBOARD PAGES
+All pages in this section require authentication ( role: student ). The shared dashboard shell includes: - Top bar: Home button (back to
+public home), Logout button (top right). - Left sidebar (collapsible): navigation to all modules below, plus dynamically-appearing
+Announcement Group entries (see 4.2.3) each showing an unread-count badge. - Theme toggle persists from the public site (shared
+context).
+
+4.2.1 Dashboard Home ( /dashboard )
+Purpose: The student's landing page after login — a hub linking to every module.
+UI Layout & Elements: - Profile card (small, top area): profile photo, name, roll no snippet, and a compact progress ring/bar showing
+roadmap completion %. Clicking the card navigates to /dashboard/profile . - Events & Announcements tabs, placed side-by-side
+prominently (these are the two "important" modules per requirement) — each tab shows a short live preview (latest 3 items) with a "View
+All" link. - Module grid (small cards), including: - Daily/Module-wise Coding Roadmap - Semester-wise Certifications Guide - Semesterwise Skill Roadmap - Company-wise Information - All Alumni Repositories - Learning Resources & References - Department
+Achievements - Resume Guide & ATS Score - Connect Sphere (community chat)
+Features: - Each module card is a navigation tile; cards reflect real counts where relevant (e.g., "3 new announcements", "2 events
+ending soon"). - Progress data on the profile card is computed from User.progress.completionPercent (cached, recalculated
+whenever a roadmap checklist item is toggled).
+Data Source / API: GET /api/v1/student/dashboard-summary (aggregated: profile snippet, latest announcements, latest events,
+module counts).
+Access Control: requireAuth , requireRole('student') .
+Edge Cases: New student with zero progress shows an encouraging empty-state on the progress ring rather than a blank/broken chart.
+
+4.2.2 Profile Page ( /dashboard/profile and /dashboard/profile/:rollNo for peer view)
+Purpose: View/edit personal profile; also used as the peer-view profile when reached via Search Students.
+
+9
+
+UI Layout & Elements (own profile): - Profile photo (editable — upload/replace). - Editable fields: name is shown but per requirement
+email and roll number are NOT editable; other fields (phone, branch display, isHostel, laptopAvailable, MNC/higher-ed flag, parent
+mobile number, skills [multi-select dropdown], links [LinkedIn/GitHub/LeetCode/portfolio], project links) are editable inline. - Achievements/
+certificates upload section (photos, certificates, documents — general upload, distinct from event-specific certificate uploads). - Password
+is never displayed; instead a "Change Password" button opens an OTP-verification modal (send OTP to registered email → verify → set
+new password). - A "Change Password" button — separate from profile save — triggers the OTP modal described above. - Progress
+section: visual checklist/progress summary of roadmap completion. - Nav bar of this page includes a Search Students entry (per
+requirement, this search is available only on Profile and Dashboard, nowhere else).
+UI Layout & Elements (peer view via search): - Same layout, but: phone number, parent phone number, and profile photo are hidden
+(blurred/placeholder) for peer viewers. All other fields (skills, links, achievements, project links) remain visible, consistent with "students
+can see all details except vulnerable/private ones." - Admin viewing any profile sees everything, including hidden fields.
+Features: - Field-level visibility is enforced server-side in the controller response shaping — never left to frontend hiding. - Skill selection
+from an admin-curated dropdown list ( GET /api/v1/skills-catalogue ), not free text, to keep data consistent for future filtering/
+search. - Any field is editable at any time (per requirement — no lock after initial submission), except email/roll number which are
+immutable identifiers.
+Data Source / API: - GET /api/v1/student/profile/me - GET /api/v1/student/profile/:rollNo (peer/admin view, response
+shaped by viewer role) - PATCH /api/v1/student/profile/me - POST /api/v1/student/profile/change-password (OTP flow) GET /api/v1/student/search?query= (name/roll no search — scoped to this page + dashboard only)
+
+Access Control: requireAuth . Own profile: full write. Peer profile: read-only, filtered fields.
+Edge Cases: Attempting to PATCH email or rollNo is rejected server-side (400) even if sent in payload, as a defense-in-depth
+measure beyond just hiding the field in UI.
+
+4.2.3 Announcements Page ( /dashboard/announcements )
+Purpose: Year/batch-targeted announcement feed, group-chat-like sidebar experience.
+UI Layout & Elements: - Left bar: list of announcement groups the student belongs to — computed from their year and, for years
+3–4, their batchType (smart/tap/itca/nonItca). A first-year student sees only a "1st Year" group; a 3rd-year "smart" + "itca" student (if
+applicable) sees multiple group entries simultaneously, each with its own unread badge. - Main panel: selected group's announcement
+stream — cards with title, body, attachments (image/doc/excel/video preview or download link), posted-by name, and timestamp. - New/
+unread announcements show a "pending" indicator on both the Dashboard summary box and the relevant sidebar group entry.
+Features: - Read/unread tracked per user ( Announcement.readBy ); opening a group marks its announcements read and clears the
+badge (and pushes a live update via the /notify socket namespace). - Eligibility computation (who sees which group) is a backendcomputed derived list, not client-side logic: GET /api/v1/student/announcement-groups returns the group list the logged-in student
+qualifies for, based on year / batchType fields on their User document.
+Data Source / API: - GET /api/v1/student/announcement-groups - GET /api/v1/student/announcements?group= - POST /
+api/v1/student/announcements/:id/mark-read - Socket: /notify → announcement:new
+
+Access Control: requireAuth , group membership enforced server-side (a student cannot fetch a group's announcements they don't
+qualify for).
+Edge Cases: A first-year student only ever sees the single "Year 1" group per requirement (no batch-type sub-groups until year 3+). If
+batchType is null for a 3rd/4th-year student (not yet assigned), they see only the plain year-level group until admin assigns a batch type.
+
+4.2.4 Events Page ( /dashboard/events )
+Purpose: Browse and register for events (mock interviews, certification submission drives, etc.).
+UI Layout & Elements: - Grid/list of event cards, each showing: title, type, short description, and a live countdown ("5 hrs left") computed
+from expiresAt . - Clicking a card opens event detail: full description, registration button (or "Registered" state), and — for certificationdrive type events — a certificate upload widget (drag-drop, restricted to image/PDF, shows the naming convention applied automatically).
+- For mock-interview type events, after registering the student sees their assigned Zoom link + scheduled time directly in the card (also
+emailed).
+Features: - Registration button becomes disabled once expiresAt passes; countdown updates live (client-side timer synced to server
+time). - Certificate uploads stream straight to the backend, which forwards to Google Drive; the UI shows upload progress and a success
+state per file, then lists previously uploaded certs for that student under that event. - Admin-deleted events disappear immediately; if a
+student had pending registration data, it's gone too (per requirement — registration data is deleted with the event).
+
+10
+
+Data Source / API: - GET /api/v1/student/events (filter: active/upcoming) - POST /api/v1/student/events/:id/register POST /api/v1/student/events/:id/upload-certificate (multipart) - GET /api/v1/student/events/:id/my-registration
+
+Access Control: requireAuth .
+Edge Cases: Double-registration prevented (idempotent — button reflects existing registration). Upload rejects non-image/PDF files
+client-side and again server-side.
+
+4.2.5 Skill Roadmap Page ( /dashboard/skill-roadmap )
+Purpose: Semester-wise, skill-grouped learning roadmap with references, open to all students.
+UI Layout & Elements: - Semester tabs/accordion (Sem 1 → Sem 8). - Within each semester: skill groups, each expandable to show
+admin-authored content blocks (description, YouTube links, practice-reference links, etc.) rendered generically from contentBlocks . - A
+"Mandatory Skills" indicator/section per semester — clicking it filters/highlights which skill groups in that semester are marked
+mandatory: true . - Checkbox next to each skill-group item — ties into the student's overall progress tracker (also reflected on the
+
+Dashboard profile card).
+Features: - Checklist state persists to User.progress.roadmapChecklist ; toggling recalculates completionPercent . - Fully adminauthored content — the page is a generic renderer for whatever content blocks admin has added, in whatever order, matching the "no
+static template" requirement.
+Data Source / API: - GET /api/v1/student/skill-roadmap?semester= - PATCH /api/v1/student/roadmap-checklist/:itemId
+(toggle done)
+Access Control: requireAuth .
+
+4.2.6 Semester-wise Certifications Page ( /dashboard/certifications )
+Purpose: Per-semester list of recommended/required certifications with how-to-complete guidance.
+UI Layout & Elements: Semester-grouped list; each certification entry expands to show description, "how to apply" steps, and reference
+links/resources (rendered from contentBlocks ).
+Features: Read-only for students; fully admin-managed content, block-based rendering.
+Data Source / API: GET /api/v1/student/certifications?semester=
+Access Control: requireAuth .
+
+4.2.7 Company-wise Information Page ( /dashboard/companies )
+Purpose: Placement-drive information, organized by status and academic year.
+UI Layout & Elements: - Top-level filter/tabs: Completed / Ongoing / Upcoming. - Within "Completed": grouped by academic year, shown
+as boxes with aggregated stats (no. placed, CTC range, roles). - Clicking a company opens a detail view: description, eligibility criteria, full
+recruitment process, round-by-round breakdown (attended/passed per round, focus topics), CTC & roles, previous-year technical/coding
+questions, final "how many cleared" summary, and — at the bottom — linked Alumni Repo entries for that company (per requirement:
+"at last... the alumni repos").
+Features: Read-only for students; admin manages full lifecycle (upcoming → ongoing → completed) from the Admin Dashboard.
+Data Source / API: -
+
+GET
+
+/api/v1/student/companies?status=&year=
+
+-
+
+GET
+
+/api/v1/student/companies/:id
+
+(includes
+
+populated linkedAlumniRepos)
+Access Control: requireAuth .
+
+4.2.8 All Alumni Repositories Page ( /dashboard/alumni-repos )
+Purpose: Browse alumni placement records, filterable by company.
+UI Layout & Elements: - Filter bar: filter by company. - List/grid of alumni cards (name, roll no, companies secured badges) → click to
+expand detail: LinkedIn, mail, GitHub, companies secured, company-wise reviews, technical assessment details, interview questions per
+company, skills.
+Features: Read-only for students; admin-authored via the alumni repo creation form.
+Data Source / API: GET /api/v1/student/alumni-repos?company=
+
+11
+
+Access Control: requireAuth .
+
+4.2.9 Department Achievements Page ( /dashboard/achievements )
+Purpose: Showcase department/student achievements (awards, recognitions, milestones).
+UI Layout & Elements: Searchable, chronologically-organized feed of achievement cards (title, description, date, media — images/docs/
+video), newest first.
+Features: Search by keyword/date; admin-only posting.
+Data Source / API: GET /api/v1/student/achievements?search=
+Access Control: requireAuth .
+
+4.2.10 Learning Resources Page ( /dashboard/learning-resources )
+Purpose: Single consolidated page of learning/practice references for every skill (distinct from the semester-tied Skill Roadmap — this is
+the general reference library).
+UI Layout & Elements: Skill-grouped accordion/list; each skill expands to show all contentBlocks (YouTube links, articles, practice
+sites, etc.).
+Data Source / API: GET /api/v1/student/learning-resources
+Access Control: requireAuth .
+
+4.2.11 Resume Guide & ATS Score Page ( /dashboard/resume-guide )
+Purpose: Help students build a strong resume and check its ATS compatibility.
+UI Layout & Elements: Sections covering resume structure/ordering guidance, downloadable templates, and outbound navigation links
+to ATS-score-checking tools — all rendered from admin-authored contentBlocks .
+Data Source / API: GET /api/v1/student/resume-guide
+Access Control: requireAuth .
+
+4.2.12 Connect Sphere Page ( /dashboard/connect-sphere )
+Purpose: Reddit/group-chat-style community space for the whole CSM community.
+UI Layout & Elements: - Left list of chat spaces: the permanent, un-deletable main space always listed first, plus any admin-created
+spaces. - Main panel: message stream. Each message shows sender's name and roll number (per requirement — identity is always
+visible in this space, unlike the general profile privacy rules), timestamp, content, and any attachment (image/document/video, rendered
+inline or as a download chip). - Message composer: text input + attach button (image/doc/video) + send. - Per-message actions: like/
+thumbs-up reaction, and a delete option — delete removes the message for everyone (no "delete for me" option exists, per
+requirement). - If a space is admin-locked, the composer is disabled with a "This space is currently locked by admin" notice, though
+history remains viewable.
+Features: - Real-time via Socket.io /chat namespace: new messages, deletions, and reaction toggles broadcast live to all clients in
+that space's room. - The permanent main space cannot be deleted by anyone, including admin; admin can create additional topic-specific
+spaces and delete those (non-permanent ones) later.
+Data Source / API: - GET /api/v1/student/chat/spaces - GET /api/v1/student/chat/:spaceId/messages?page= - POST /
+api/v1/student/chat/:spaceId/messages (+ socket emit) - POST /api/v1/student/chat/messages/:id/react - Socket: /chat
+
+→ message:new , message:delete , reaction:toggle
+Access Control: requireAuth ; write blocked if space isLocked .
+Edge Cases: Attempting to delete another student's message is rejected (only the sender or an admin can delete a message; but per
+requirement even sender-side "delete" is delete-for-all, not delete-for-me).
+
+4.2.13 Search Students (embedded in Dashboard + Profile nav bar only)
+Purpose: Quick lookup of a peer's profile by name/roll number.
+
+12
+
+UI Layout & Elements: Search input in the nav bar of the Dashboard and Profile pages only (explicitly not present in other module pages,
+per requirement); typeahead result list (name, roll no, small avatar) → navigates to that student's peer-view profile.
+Data Source / API: GET /api/v1/student/search?query=
+Access Control: requireAuth .
+
+4.3 ADMIN DASHBOARD PAGES
+All pages below require role: admin . Shared shell: top Home nav link (back to admin overview) plus a left nav covering every module
+listed. The guiding rule across every content-management page here: no fixed template — admin adds content blocks of any type, in any
+order, per the flexible-schema design in Section 3.1.
+
+4.3.1 Admin Home / Overview ( /admin )
+Purpose: Landing page for admins — snapshot of the platform.
+UI Layout & Elements: Stat tiles (total students, total admins, active events, pending event registrations, unread-announcement
+engagement, recent Connect Sphere activity), quick links into every management page below.
+Data Source / API: GET /api/v1/admin/overview-stats
+Access Control: requireAuth , requireRole('admin') .
+
+4.3.2 Manage Students ( /admin/students )
+Purpose: Full control over the student roster.
+UI Layout & Elements: - Table of all students (searchable/filterable by year/branch/batchType) with quick actions: view profile (full,
+unfiltered), deactivate/delete. - "Add Single Student" form (email + roll no + name → pre-registers a nominal so that email can complete
+self-registration). - "Bulk Import" — upload an Excel sheet of student nominal data (roll no + email, minimum); backend parses and preseeds nominal records so only pre-listed students can register. - Delete-student action (single or from the table).
+Features: Excel parsing validates required columns before import and reports row-level errors (duplicate roll no, malformed email) without
+failing the whole batch.
+Data Source / API: - GET /api/v1/admin/students - POST /api/v1/admin/students (single add) - POST /api/v1/admin/
+students/bulk-import (multipart Excel) - DELETE /api/v1/admin/students/:id
+
+Access Control: requireRole('admin') .
+
+4.3.3 Manage Admins ( /admin/admins )
+Purpose: Control who can become an admin.
+UI Layout & Elements: List of current admins; "Add Admin by Email" input (adds an email to an allow-list); when that email's account
+holder registers/logs in, backend checks the allow-list and elevates their role to admin automatically. "Remove Admin" action revokes
+the role (reverts to student).
+Features: Only the first/super-admin (or any existing admin, per requirement — "he can add many admins") can add further admins by
+email.
+Data Source / API: - GET /api/v1/admin/admins - POST /api/v1/admin/admins (add email to allow-list) - DELETE /api/v1/
+admin/admins/:id (remove admin role)
+
+Access Control: requireRole('admin') .
+
+4.3.4 Manage Announcements ( /admin/announcements )
+Purpose: Create/edit/delete announcements with precise group targeting.
+UI Layout & Elements: Rich composer: title, body, attachment upload (image/doc/excel/video/pdf — "all possible" per requirement), and
+a targeting selector (year checkboxes; for years 3–4, batch-type checkboxes: smart/tap/itca/nonItca). List of previously posted
+announcements with edit/delete actions.
+Data Source / API: - GET /api/v1/admin/announcements - POST /api/v1/admin/announcements - PATCH /api/v1/admin/
+announcements/:id - DELETE /api/v1/admin/announcements/:id
+
+13
+
+Access Control: requireRole('admin') .
+
+4.3.5 Manage Events & Registrations ( /admin/events )
+Purpose: Full event lifecycle management.
+UI Layout & Elements: Create-event form (title, description, type, start time, expiry/duration e.g. "15 days"), list of active events with live
+registration counts, a per-event registrations table (who registered, uploaded certs, Zoom join status), and a Delete action (with a
+confirmation noting registrations + in-app records will be removed, though Drive files persist).
+Features: Deleting an event cascades to EventRegistration deletion in Mongo (Drive data untouched per Section 3.5). Cron autoexpires/deletes events past expiresAt unless admin extends them.
+Data Source / API: -
+
+GET
+
+/api/v1/admin/events
+
+-
+
+POST
+
+/api/v1/admin/events
+
+-
+
+GET
+
+/api/v1/admin/events/:id/
+
+registrations - DELETE /api/v1/admin/events/:id
+
+Access Control: requireRole('admin') .
+
+4.3.6 Manage Skill Roadmap ( /admin/skill-roadmap )
+Purpose: Author the semester-wise skill roadmap shown to students.
+UI Layout & Elements: Semester selector → skill-group list with drag-to-reorder → a block editor per skill group where admin adds any
+number of content blocks (text/link/video/file) in any order, plus a mandatory toggle.
+Data Source / API: GET/POST/PATCH/DELETE /api/v1/admin/skill-roadmap
+Access Control: requireRole('admin') .
+
+4.3.7 Manage Certifications ( /admin/certifications )
+Purpose: Author semester-wise certification guidance.
+UI Layout & Elements: Same block-editor pattern as Skill Roadmap, scoped per semester.
+Data Source / API: GET/POST/PATCH/DELETE /api/v1/admin/certifications
+Access Control: requireRole('admin') .
+
+4.3.8 Manage Company Info ( /admin/companies )
+Purpose: Manage the placement-drive lifecycle and details.
+UI Layout & Elements: "Add Company" form entering name/description/recruitment process/CTC/roles; status control to move a
+company between Upcoming → Ongoing → Completed; per-round stats editor (attended/passed/focus topics); previous-year questions
+block editor; final "cleared" summary field; link existing Alumni Repo entries to this company.
+Data Source / API: GET/POST/PATCH/DELETE /api/v1/admin/companies
+Access Control: requireRole('admin') .
+
+4.3.9 Manage Alumni Repos ( /admin/alumni-repos )
+Purpose: Create/edit alumni placement records.
+UI Layout & Elements: Form: name, roll no, mail, LinkedIn, profile photo, and a repeatable "company secured" block (company, offer
+type, CTC, interview questions, reviews, tips) — supports multiple companies per alumnus.
+Data Source / API: GET/POST/PATCH/DELETE /api/v1/admin/alumni-repos
+Access Control: requireRole('admin') .
+
+4.3.10 Manage Department Achievements ( /admin/achievements )
+Purpose: Post department/student achievements.
+UI Layout & Elements: Composer: title, description, date, media upload (any document type), searchable list of existing entries with edit/
+delete.
+
+14
+
+Data Source / API: GET/POST/PATCH/DELETE /api/v1/admin/achievements
+Access Control: requireRole('admin') .
+
+4.3.11 Manage Learning Resources ( /admin/learning-resources )
+Purpose: Curate the general skill-reference library.
+UI Layout & Elements: Skill-name entries, each with a block editor identical in pattern to Skill Roadmap/Certifications.
+Data Source / API: GET/POST/PATCH/DELETE /api/v1/admin/learning-resources
+Access Control: requireRole('admin') .
+
+4.3.12 Manage Resume Templates & Guide ( /admin/resume-guide )
+Purpose: Maintain resume templates, ordering guidance, and ATS-check navigation links.
+UI Layout & Elements: Block editor (same reusable pattern) for template files, structure guidance text, and outbound ATS-tool links.
+Data Source / API: GET/POST/PATCH/DELETE /api/v1/admin/resume-guide
+Access Control: requireRole('admin') .
+
+4.3.13 Manage Connect Sphere ( /admin/connect-sphere )
+Purpose: Moderate community chat.
+UI Layout & Elements: List of chat spaces (permanent one flagged, cannot be deleted); "Create Space" action; per-space moderation
+panel: lock/unlock space, remove a specific member by email/roll number, delete any message, delete a non-permanent space entirely.
+Data Source / API: - GET /api/v1/admin/chat/spaces - POST /api/v1/admin/chat/spaces - PATCH /api/v1/admin/chat/
+spaces/:id/lock - DELETE /api/v1/admin/chat/spaces/:id (blocked for the permanent space) - DELETE /api/v1/admin/chat/
+messages/:id - POST /api/v1/admin/chat/spaces/:id/remove-member
+
+Access Control: requireRole('admin') .
+
+4.3.14 Manage Scheme/Syllabus Links & Department Info ( /admin/department-info )
+Purpose: Edit the Home page's dynamic content: motto, vision/mission, faculty links, and scheme/syllabus link cards (add/remove
+scheme years dynamically).
+UI Layout & Elements: Simple form/list editors for each of the above sections.
+Data Source / API: GET/PATCH /api/v1/admin/department-info , GET/POST/DELETE /api/v1/admin/scheme-links
+Access Control: requireRole('admin') .
+
+4.4 Cross-Cutting UI Behavior: Theme Toggle
+• Implemented via a ThemeContext at the app root, backed by a data-theme="light"|"dark" attribute on <html> and CSS
+custom properties for every color used across the app (never hardcoded hex values in components).
+• Toggle control lives once, in the shared Navbar component (rendered identically on public site, student dashboard, and admin
+dashboard), so the same control works "everywhere" per requirement.
+• Persisted client-side (localStorage) so it survives refreshes/navigation; default on first visit is light mode.
+
+5. Backend File Structure (Detailed)
+backend/
+├── Dockerfile
+├── package.json
+├── .env.example
+├── server.js
+└── src/
+
+# entry point: creates HTTP server, attaches Socket.io, starts app
+
+15
+
+├── app.js
+# Express app: middleware chain, route mounting, error handler
+├── config/
+│
+├── db.js
+# Mongoose connection setup
+│
+├── redis.js
+# Redis client setup (cache, OTP cooldown, rate-limit store, socket
+adapter)
+│
+├── mailer.js
+# Nodemailer transporter config
+│
+├── googleDrive.js
+# Google service-account auth + Drive client factory
+│
+├── zoom.js
+# Zoom S2S OAuth token fetch/cache
+│
+└── env.js
+# centralized env var validation (fails fast on missing vars)
+│
+├── models/
+│
+├── User.model.js
+│
+├── OtpToken.model.js
+│
+├── SchemeLink.model.js
+│
+├── DepartmentInfo.model.js
+│
+├── FacultyLink.model.js
+│
+├── Announcement.model.js
+│
+├── Event.model.js
+│
+├── EventRegistration.model.js
+│
+├── SkillRoadmap.model.js
+│
+├── Certification.model.js
+│
+├── CompanyInfo.model.js
+│
+├── AlumniRepo.model.js
+│
+├── Achievement.model.js
+│
+├── LearningResource.model.js
+│
+├── ResumeGuide.model.js
+│
+├── ChatSpace.model.js
+│
+├── Message.model.js
+│
+└── shared/contentBlock.schema.js
+# reusable sub-schema (Section 3.1)
+│
+├── controllers/
+│
+├── auth.controller.js
+# register, login, otp verify, forgot/reset password
+│
+├── profile.controller.js
+# get/patch profile (role-based field shaping), search
+│
+├── announcement.controller.js
+│
+├── event.controller.js
+│
+├── skillRoadmap.controller.js
+│
+├── certification.controller.js
+│
+├── companyInfo.controller.js
+│
+├── alumniRepo.controller.js
+│
+├── achievement.controller.js
+│
+├── learningResource.controller.js
+│
+├── resumeGuide.controller.js
+│
+├── chat.controller.js
+│
+├── public.controller.js
+# home page data: department info, faculty links, scheme links
+│
+└── admin/
+│
+├── students.admin.controller.js
+│
+├── admins.admin.controller.js
+│
+├── announcements.admin.controller.js
+│
+├── events.admin.controller.js
+│
+├── content.admin.controller.js
+# shared handlers for roadmap/certs/resources/resume
+(generic block CRUD)
+│
+├── companies.admin.controller.js
+│
+├── alumniRepos.admin.controller.js
+│
+├── achievements.admin.controller.js
+│
+├── chat.admin.controller.js
+│
+└── departmentInfo.admin.controller.js
+│
+├── routes/
+│
+├── index.js
+# mounts all routers under /api/v1
+│
+├── auth.routes.js
+│
+├── public.routes.js
+│
+├── student/
+│
+│
+├── profile.routes.js
+│
+│
+├── announcement.routes.js
+│
+│
+├── event.routes.js
+│
+│
+├── skillRoadmap.routes.js
+│
+│
+├── certification.routes.js
+│
+│
+├── companyInfo.routes.js
+│
+│
+├── alumniRepo.routes.js
+│
+│
+├── achievement.routes.js
+│
+│
+├── learningResource.routes.js
+│
+│
+├── resumeGuide.routes.js
+
+16
+
+│
+│
+└── chat.routes.js
+│
+└── admin/
+│
+├── students.routes.js
+│
+├── admins.routes.js
+│
+├── announcements.routes.js
+│
+├── events.routes.js
+│
+├── content.routes.js
+# roadmap/certs/resources/resume generic routes
+│
+├── companies.routes.js
+│
+├── alumniRepos.routes.js
+│
+├── achievements.routes.js
+│
+├── chat.routes.js
+│
+└── departmentInfo.routes.js
+│
+├── middleware/
+│
+├── auth.middleware.js
+# verifies JWT, attaches req.user
+│
+├── role.middleware.js
+# requireRole('student'|'admin')
+│
+├── upload.middleware.js
+# multer config (memory storage, mime/size limits)
+│
+├── rateLimiter.middleware.js # express-rate-limit + Redis store, applied to /auth/*, /otp/*
+│
+├── validate.middleware.js
+# Joi/Zod schema validation wrapper
+│
+└── errorHandler.middleware.js # centralized error → response mapper
+│
+├── services/
+│
+├── otp.service.js
+# generate/hash/verify OTP, cooldown logic
+│
+├── email.service.js
+# templated emails: OTP, Zoom link, event reminders
+│
+├── drive.service.js
+# createFolder, uploadFile, naming-convention logic
+│
+├── zoom.service.js
+# createMeeting, token caching
+│
+├── announcementEligibility.service.js # computes which groups a user belongs to
+│
+├── progress.service.js
+# recalculates User.progress.completionPercent
+│
+└── excelImport.service.js
+# parses uploaded student nominal sheets (xlsx → validated rows)
+│
+├── sockets/
+│
+├── index.js
+# socket.io server init + Redis adapter attach
+│
+├── chat.socket.js
+# /chat namespace handlers
+│
+└── notify.socket.js
+# /notify namespace handlers
+│
+├── jobs/
+│
+├── expireEvents.cron.js
+# deletes Events + EventRegistrations past expiresAt
+│
+└── cleanupOtp.cron.js
+# safety-net cleanup beyond Mongo TTL index
+│
+├── utils/
+│
+├── apiResponse.js
+# standard {success,data,message,error} wrapper
+│
+├── asyncHandler.js
+# try/catch wrapper for async controllers
+│
+├── generateTokens.js
+# JWT sign/verify helpers
+│
+└── fileNaming.js
+# certificate naming convention helper
+│
+└── validators/
+# Joi/Zod schemas per resource (register, login, event, announcement,
+etc.)
+├── auth.validators.js
+├── profile.validators.js
+├── event.validators.js
+└── ... (one per resource)
+
+6. Frontend File Structure (Detailed)
+frontend/
+├── Dockerfile
+├── nginx.conf
+separate proxy)
+├── package.json
+├── vite.config.js
+├── tailwind.config.js
+└── src/
+├── main.jsx
+├── App.jsx
+│
+├── context/
+│
+├── AuthContext.jsx
+│
+└── ThemeContext.jsx
+
+# serves built static files, proxies /api to backend (if not using
+
+# app entry, wraps App with providers
+# route definitions
+
+# current user, login/logout, token refresh
+# dark/light state + persistence
+
+17
+
+│
+├── hooks/
+│
+├── useAuth.js
+│
+├── useTheme.js
+│
+├── useSocket.js
+# socket.io client connection hook
+│
+└── useDebouncedValue.js
+# for search/typeahead inputs
+│
+├── services/
+# axios wrappers, one file per backend resource
+│
+├── api.js
+# base axios instance (baseURL, interceptors for auth refresh)
+│
+├── auth.service.js
+│
+├── profile.service.js
+│
+├── announcement.service.js
+│
+├── event.service.js
+│
+├── skillRoadmap.service.js
+│
+├── certification.service.js
+│
+├── companyInfo.service.js
+│
+├── alumniRepo.service.js
+│
+├── achievement.service.js
+│
+├── learningResource.service.js
+│
+├── resumeGuide.service.js
+│
+├── chat.service.js
+│
+└── admin/
+# mirrors admin.* backend routes, one file per module
+│
+├── components/
+│
+├── layout/
+│
+│
+├── Navbar.jsx
+# shared across public/dashboard/admin; theme toggle + auth-aware
+buttons
+│
+│
+├── Footer.jsx
+│
+│
+├── DashboardSidebar.jsx
+│
+│
+└── AdminSidebar.jsx
+│
+├── shared/
+│
+│
+├── ThemeToggle.jsx
+│
+│
+├── OtpInput.jsx
+# reusable 6-digit OTP box, used in register/forgot-password/profilepassword-change
+│
+│
+├── ContentBlockRenderer.jsx # generic renderer for ContentBlockSchema arrays (text/link/video/
+image/file)
+│
+│
+├── ContentBlockEditor.jsx
+# generic admin editor for the same blocks (add/reorder/remove)
+│
+│
+├── FileUploader.jsx
+│
+│
+├── ProgressRing.jsx
+│
+│
+├── CountdownTimer.jsx
+# event "X hrs left"
+│
+│
+└── SearchStudents.jsx
+# embedded search widget (Dashboard + Profile only)
+│
+├── profile/
+│
+│
+├── ProfileCard.jsx
+# small dashboard-home card
+│
+│
+├── ProfileForm.jsx
+│
+│
+└── PeerProfileView.jsx
+# field-filtered read-only view
+│
+├── announcements/
+│
+│
+├── AnnouncementGroupList.jsx
+│
+│
+└── AnnouncementCard.jsx
+│
+├── events/
+│
+│
+├── EventCard.jsx
+│
+│
+└── EventCertificateUpload.jsx
+│
+├── connectSphere/
+│
+│
+├── ChatSpaceList.jsx
+│
+│
+├── MessageStream.jsx
+│
+│
+└── MessageComposer.jsx
+│
+└── roadmap/
+│
+└── RoadmapChecklistItem.jsx
+│
+├── pages/
+│
+├── public/
+│
+│
+├── Home.jsx
+│
+│
+├── Login.jsx
+│
+│
+├── Register.jsx
+│
+│
+└── ForgotPassword.jsx
+│
+├── dashboard/
+│
+│
+├── DashboardHome.jsx
+│
+│
+├── Profile.jsx
+│
+│
+├── Announcements.jsx
+│
+│
+├── Events.jsx
+│
+│
+├── SkillRoadmap.jsx
+│
+│
+├── Certifications.jsx
+│
+│
+├── Companies.jsx
+
+18
+
+│
+│
+├── AlumniRepos.jsx
+│
+│
+├── Achievements.jsx
+│
+│
+├── LearningResources.jsx
+│
+│
+├── ResumeGuide.jsx
+│
+│
+└── ConnectSphere.jsx
+│
+└── admin/
+│
+├── AdminHome.jsx
+│
+├── ManageStudents.jsx
+│
+├── ManageAdmins.jsx
+│
+├── ManageAnnouncements.jsx
+│
+├── ManageEvents.jsx
+│
+├── ManageSkillRoadmap.jsx
+│
+├── ManageCertifications.jsx
+│
+├── ManageCompanies.jsx
+│
+├── ManageAlumniRepos.jsx
+│
+├── ManageAchievements.jsx
+│
+├── ManageLearningResources.jsx
+│
+├── ManageResumeGuide.jsx
+│
+├── ManageConnectSphere.jsx
+│
+└── ManageDepartmentInfo.jsx
+│
+├── routes/
+│
+├── PublicRoute.jsx
+# redirect away if authenticated
+│
+├── PrivateRoute.jsx
+# student-auth guard
+│
+└── AdminRoute.jsx
+# admin-role guard
+│
+└── styles/
+├── index.css
+# Tailwind base + CSS variable definitions for both themes
+└── theme-variables.css
+
+7. Key User & Data Flows
+7.1 Registration Flow
+Home -> Register -> fill form -> "Send OTP" -> backend validates uniqueness,
+mails OTP -> user enters OTP -> "Register" -> backend verifies OTP, creates User,
+issues JWT cookies -> redirect to /dashboard
+
+7.2 Login Flow
+Login form -> POST /auth/login -> backend checks password -> issues JWT ->
+frontend reads user.role -> role=student => /dashboard, role=admin => /admin
+
+7.3 Forgot Password Flow
+Forgot Password -> enter email -> OTP mailed -> enter OTP -> resetToken issued
+-> enter new password -> POST /auth/reset-password -> redirect to /login
+
+7.4 Announcement Targeting Flow
+Admin composes announcement -> selects target years/batchTypes -> POST /admin/announcements
+-> for every currently-online student whose (year,batchType) matches a targetGroup,
+backend emits socket 'announcement:new' to their /notify room (live badge update)
+-> on next Announcements page load, GET /student/announcement-groups recomputes
+membership fresh from the student's current User.year/batchType (always live, not cached)
+
+7.5 Event Registration + Zoom + Drive Flow
+Admin creates Event(type=mock-interview) -> backend provisions Drive folder (if cert
+uploads allowed) and stores driveFolderId
+Student -> Events page -> Register -> backend creates EventRegistration ->
+
+19
+
+if type=mock-interview: backend calls Zoom API -> stores join_url/start_time
+-> Nodemailer emails the student the link
+Student -> (for certification-drive events) uploads certificate -> backend validates
+mime/size -> uploads to Drive under event's folder with Name_RollNo_CertName.ext
+-> stores driveFileId in EventRegistration.uploads[]
+Event expires (cron) -> Event + all EventRegistration docs deleted from MongoDB;
+Drive folder/files persist untouched
+
+7.6 Connect Sphere Message Flow
+Student opens Connect Sphere -> socket joins room(spaceId) -> GET recent message
+history (paginated) -> sends message -> POST persists to Mongo -> backend emits
+'message:new' to room -> all connected clients in that room append the message live
+Delete: sender or admin -> DELETE -> backend sets deletedForAll=true -> emits
+'message:delete' -> all clients remove it from view (no per-user "delete for me")
+
+7.7 Admin Content Publish Flow (generic, applies to Roadmap/Certs/Achievements/etc.)
+Admin opens Manage<Module> page -> ContentBlockEditor -> add/reorder/remove blocks
+of any type -> Save -> PATCH/POST to admin.<module> route -> backend persists
+contentBlocks array as-is (schema-flexible) -> student-facing page re-fetches and
+renders via the shared ContentBlockRenderer component
+
+8. Deployment Architecture (Docker)
+8.1 docker-compose.yml (structure)
+version: "3.9"
+services:
+nginx-proxy:
+build: ./nginx-proxy
+ports: ["80:80", "443:443"]
+depends_on: [frontend, backend]
+networks: [tmp-net]
+frontend:
+build: ./frontend
+networks: [tmp-net]
+depends_on: [backend]
+backend:
+build: ./backend
+env_file: .env
+depends_on: [mongo, redis]
+networks: [tmp-net]
+volumes: ["backend-uploads:/app/uploads"]
+mongo:
+image: mongo:7
+volumes: ["mongo-data:/data/db"]
+networks: [tmp-net]
+redis:
+image: redis:7-alpine
+volumes: ["redis-data:/data"]
+networks: [tmp-net]
+networks:
+tmp-net:
+driver: bridge
+volumes:
+mongo-data:
+
+20
+
+redis-data:
+backend-uploads:
+
+8.2 Environment Variables ( .env )
+NODE_ENV=production
+PORT=5000
+MONGO_URI=mongodb://mongo:27017/tmp_db
+REDIS_URL=redis://redis:6379
+JWT_ACCESS_SECRET=...
+JWT_REFRESH_SECRET=...
+JWT_ACCESS_EXPIRY=15m
+JWT_REFRESH_EXPIRY=7d
+SMTP_HOST=... SMTP_PORT=... SMTP_USER=... SMTP_PASS=...
+GOOGLE_SERVICE_ACCOUNT_JSON=...
+GOOGLE_DRIVE_ROOT_FOLDER_ID=...
+ZOOM_ACCOUNT_ID=... ZOOM_CLIENT_ID=... ZOOM_CLIENT_SECRET=...
+ALLOWED_EMAIL_DOMAIN=gprec.ac.in
+FRONTEND_ORIGIN=https://tmp.gprec.ac.in
+
+8.3 Build/Run
+docker compose build
+docker compose up -d
+docker compose logs -f backend
+
+9. Non-Functional Requirements & Best Practices
+• Validation everywhere: every request body validated (Joi/Zod) before touching the DB.
+• Consistent error shape: all errors flow through errorHandler.middleware.js into {success:false, message, error} .
+• Indexes: unique indexes on email / rollNo ; compound index on {year, batchType} ; TTL index on OtpToken.expiresAt .
+• Backups: scheduled mongodump of the mongo-data volume.
+• Logging: structured request logging (morgan/winston) in the backend container, shippable to a log aggregator later.
+• Testing: Jest + Supertest for backend route/controller tests; React Testing Library for frontend component tests.
+• CI/CD ready: each container builds independently, so a CI pipeline can build/push/deploy them separately.
+
+10. Appendix: Consolidated REST API Endpoint List
+Auth: POST /auth/register , POST /auth/verify-otp , POST /auth/login , POST /auth/forgot-password , POST /auth/
+verify-reset-otp , POST /auth/reset-password , POST /auth/logout , POST /auth/refresh-token
+
+Public: GET /public/department-info , GET /public/faculty-links , GET /public/scheme-links
+Student:
+GET
+
+GET/PATCH /student/profile/me ,
+
+/student/search ,
+
+GET
+
+GET /student/profile/:rollNo ,
+
+/student/announcement-groups ,
+
+GET
+
+POST /student/profile/change-password ,
+
+/student/announcements ,
+
+POST
+
+/student/
+
+announcements/:id/mark-read , GET /student/events , POST /student/events/:id/register , POST /student/events/:id/
+upload-certificate ,
+
+GET
+
+/student/skill-roadmap ,
+
+PATCH
+
+/student/roadmap-checklist/:itemId ,
+
+GET
+
+/student/
+
+certifications , GET /student/companies , GET /student/companies/:id , GET /student/alumni-repos , GET /student/
+achievements ,
+
+GET
+
+/student/learning-resources ,
+
+student/chat/:spaceId/messages ,
+
+POST
+
+GET
+
+/student/resume-guide ,
+
+/student/chat/:spaceId/messages ,
+
+POST
+
+GET
+
+/student/chat/spaces ,
+
+GET
+
+/
+
+/student/chat/messages/:id/react ,
+
+DELETE /student/chat/messages/:id
+
+Admin: GET /admin/overview-stats , full CRUD on /admin/students , /admin/students/bulk-import , /admin/admins , /
+admin/announcements ,
+
+/admin/events ,
+
+/admin/events/:id/registrations ,
+
+/admin/skill-roadmap ,
+
+/admin/
+
+certifications , /admin/companies , /admin/alumni-repos , /admin/achievements , /admin/learning-resources , /admin/
+resume-guide ,
+
+/admin/chat/spaces ,
+
+/admin/chat/spaces/:id/lock ,
+
+spaces/:id/remove-member , /admin/department-info , /admin/scheme-links
+
+21
+
+/admin/chat/messages/:id ,
+
+/admin/chat/
+
+End of Document
+
+22
+
+
