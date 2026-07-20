@@ -1,14 +1,18 @@
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Outlet } from 'react-router-dom';
 
 import { ThemeProvider }  from './context/ThemeContext';
 import { AuthProvider }   from './context/AuthContext';
 import Navbar            from './components/layout/Navbar';
 import PublicRoute       from './routes/PublicRoute';
+import PrivateRoute      from './routes/PrivateRoute';
+import DashboardLayout   from './components/layout/DashboardLayout';
 
 // ── Pages ─────────────────────────────────────────────────────────────────────
 import Register      from './pages/public/Register';
 import Login         from './pages/public/Login';
 import ForgotPassword from './pages/public/ForgotPassword';
+import DashboardHome from './pages/dashboard/DashboardHome';
+import Profile       from './pages/dashboard/Profile';
 
 // ── Phase 0 health-check component (inline — will be replaced in Phase 4 Home page)
 import { useEffect, useState } from 'react';
@@ -33,7 +37,7 @@ function PlaceholderHome() {
         <p className="text-[var(--color-text-muted)]">Home page coming in Phase 4</p>
         <span className="inline-block mt-3 px-3 py-1 text-xs font-medium rounded-full
           bg-[var(--color-accent-subtle)] text-[var(--color-accent)] border border-[var(--color-accent-border)]">
-          Phase 1 · Auth & Theming
+          Phase 2 · Dashboard & Profile
         </span>
       </div>
 
@@ -50,25 +54,14 @@ function PlaceholderHome() {
   );
 }
 
-// ── Stub pages for routes not yet built ───────────────────────────────────────
-function DashboardStub() {
+// ── Shared Public Layout (displays main Navbar) ──────────────────────────────
+function PublicLayout() {
   return (
-    <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center">
-      <div className="text-center glass-card p-10">
-        <p className="text-2xl font-bold text-[var(--color-text-primary)] mb-2">Dashboard</p>
-        <p className="text-[var(--color-text-muted)] text-sm">Coming in Phase 2 — Dashboard Shell</p>
-      </div>
-    </div>
-  );
-}
-
-function AdminStub() {
-  return (
-    <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center">
-      <div className="text-center glass-card p-10">
-        <p className="text-2xl font-bold text-[var(--color-text-primary)] mb-2">Admin Panel</p>
-        <p className="text-[var(--color-text-muted)] text-sm">Coming in a later phase</p>
-      </div>
+    <div className="min-h-screen bg-[var(--color-bg)] transition-colors duration-250">
+      <Navbar />
+      <main>
+        <Outlet />
+      </main>
     </div>
   );
 }
@@ -78,35 +71,42 @@ export default function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <div className="min-h-screen bg-[var(--color-bg)] transition-colors duration-250">
-          <Navbar />
+        <Routes>
+          {/* Public Routes with Navbar */}
+          <Route element={<PublicLayout />}>
+            <Route path="/" element={<PlaceholderHome />} />
+            <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
+            <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
+            <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
+          </Route>
 
-          <main>
-            <Routes>
-              {/* Public home (placeholder until Phase 4) */}
-              <Route path="/"              element={<PlaceholderHome />} />
-
-              {/* Auth pages — redirect logged-in users away */}
-              <Route path="/login"          element={<PublicRoute><Login /></PublicRoute>} />
-              <Route path="/register"       element={<PublicRoute><Register /></PublicRoute>} />
-              <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
-
-              {/* Stub routes — will be replaced in later phases */}
-              <Route path="/dashboard"      element={<DashboardStub />} />
-              <Route path="/admin"          element={<AdminStub />} />
-
-              {/* 404 */}
-              <Route path="*" element={
-                <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center">
-                  <div className="text-center">
-                    <p className="text-6xl font-black text-[var(--color-text-muted)] mb-4">404</p>
-                    <p className="text-[var(--color-text-secondary)]">Page not found</p>
-                  </div>
+          {/* Protected Dashboard Routes (with DashboardLayout + Sidebar) */}
+          <Route path="/dashboard" element={<PrivateRoute><DashboardLayout /></PrivateRoute>}>
+            <Route index element={<DashboardHome />} />
+            <Route path="profile" element={<Profile />} />
+            <Route path="profile/:rollNo" element={<Profile />} />
+            
+            {/* Catch-all stubs for features not yet built */}
+            <Route path="*" element={
+              <div className="min-h-[calc(100vh-8rem)] flex items-center justify-center">
+                <div className="text-center glass-card p-10">
+                  <p className="text-2xl font-bold text-[var(--color-text-primary)] mb-2">Module Offline</p>
+                  <p className="text-[var(--color-text-muted)] text-sm">This section will be activated in a subsequent phase.</p>
                 </div>
-              } />
-            </Routes>
-          </main>
-        </div>
+              </div>
+            } />
+          </Route>
+
+          {/* 404 Route */}
+          <Route path="*" element={
+            <div className="min-h-screen bg-[var(--color-bg)] flex items-center justify-center">
+              <div className="text-center">
+                <p className="text-6xl font-black text-[var(--color-text-muted)] mb-4">404</p>
+                <p className="text-[var(--color-text-secondary)]">Page not found</p>
+              </div>
+            </div>
+          } />
+        </Routes>
       </AuthProvider>
     </ThemeProvider>
   );

@@ -7,12 +7,21 @@ const asyncHandler       = require('../utils/asyncHandler');
 const { sendResponse }   = require('../utils/apiResponse');
 
 // ── Sub-routers ───────────────────────────────────────────────────────────────
-const authRoutes = require('./auth.routes');
+const authRoutes    = require('./auth.routes');
+const studentRoutes = require('./student/profile.routes');
+const profileCtrl   = require('../controllers/profile.controller');
+const authenticate  = require('../middleware/auth.middleware');
 
 const router = express.Router();
 
 // Mount auth routes at /api/v1/auth
 router.use('/auth', authRoutes);
+
+// Mount student routes at /api/v1/student
+router.use('/student', studentRoutes);
+
+// Mount shared skills catalogue lookup (requires authentication)
+router.get('/skills-catalogue', authenticate, profileCtrl.getSkillsCatalogue);
 
 // ── GET /api/v1/health ────────────────────────────────────────────────────────
 router.get(

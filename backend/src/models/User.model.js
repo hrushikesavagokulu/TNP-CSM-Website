@@ -95,8 +95,6 @@ const userSchema = new mongoose.Schema(
 );
 
 // ── Indexes ──────────────────────────────────────────────────────────────────
-userSchema.index({ email:  1 }, { unique: true });
-userSchema.index({ rollNo: 1 }, { unique: true });
 userSchema.index({ year: 1, batchType: 1 }); // compound — used for batch filtering
 
 // ── Model ────────────────────────────────────────────────────────────────────

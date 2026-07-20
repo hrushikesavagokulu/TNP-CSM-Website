@@ -12,7 +12,7 @@ COPY . .
 RUN npm run build
 
 # ── Stage 2: Serve with Nginx ─────────────────────────────────────────────────
-FROM nginx:alpine AS production
+FROM mirror.gcr.io/library/nginx:alpine AS production
 
 # Remove default nginx content
 RUN rm -rf /usr/share/nginx/html/*

@@ -6,6 +6,8 @@ const helmet  = require('helmet');
 const morgan  = require('morgan');
 const cookieParser = require('cookie-parser');
 
+const path    = require('path');
+
 const apiRoutes      = require('./routes/index');
 const errorHandler   = require('./middleware/errorHandler.middleware');
 
@@ -21,8 +23,13 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));
 
-// 2. Security headers
-app.use(helmet());
+// 2. Security headers — disable Cross-Origin Resource Policy to allow displaying uploads on frontend
+app.use(helmet({
+  crossOriginResourcePolicy: false,
+}));
+
+// Serve local static file uploads
+app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 
 // 3. HTTP request logger
 app.use(morgan('dev'));
