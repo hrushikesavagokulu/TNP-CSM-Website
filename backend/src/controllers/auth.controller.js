@@ -2,6 +2,8 @@
 
 const bcrypt         = require('bcryptjs');
 const User           = require('../models/User.model');
+const AdminAllowList = require('../models/AdminAllowList.model');
+const StudentNominal = require('../models/StudentNominal.model');
 const otpService     = require('../services/otp.service');
 const { generateAccessToken, generateRefreshToken, generateResetToken,
         verifyRefreshToken, verifyResetToken,
@@ -54,7 +56,7 @@ const register = asyncHandler(async (req, res) => {
 
   // Server-side uniqueness check (never trust check-availability alone)
   const [emailTaken, rollNoTaken] = await Promise.all([
-    User.exists({ email }),
+    User.exists({ email: email.toLowerCase() }),
     User.exists({ rollNo: rollNo.toUpperCase() }),
   ]);
 
@@ -71,6 +73,25 @@ const register = asyncHandler(async (req, res) => {
       message: 'An account with this roll number already exists.',
       error:   'ROLLNO_TAKEN',
     });
+  }
+
+  // ── Roster & Allowlist Registration Guard ─────────────────────────────────
+  const isAllowedAdmin = await AdminAllowList.exists({ email: email.toLowerCase() });
+  
+  if (!isAllowedAdmin) {
+    // If not a pre-approved admin, they MUST be present in the StudentNominal roster matching BOTH fields
+    const nominalRecord = await StudentNominal.findOne({
+      email: email.toLowerCase(),
+      rollNo: rollNo.toUpperCase(),
+    });
+
+    if (!nominalRecord) {
+      return sendResponse(res, 403, {
+        success: false,
+        message: 'Your email and roll number are not pre-approved on the student roster. Contact admin.',
+        error:   'ROSTER_NOT_APPROVED',
+      });
+    }
   }
 
   // Stash registration payload in Redis (TTL 15 min)
@@ -112,6 +133,10 @@ const verifyOtp = asyncHandler(async (req, res) => {
   // Hash password with cost 12
   const passwordHash = await bcrypt.hash(payload.password, BCRYPT_COST);
 
+  // Determine user role (Check AdminAllowList)
+  const isAdmin = await AdminAllowList.exists({ email: payload.email.toLowerCase() });
+  const role = isAdmin ? 'admin' : 'student';
+
   // Create user
   const user = await User.create({
     name:         payload.name,
@@ -120,6 +145,7 @@ const verifyOtp = asyncHandler(async (req, res) => {
     phone:        payload.phone,
     branch:       payload.branch,
     year:         payload.year,
+    role,
     passwordHash,
   });
 
@@ -141,7 +167,7 @@ const login = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
 
   // Must select +passwordHash explicitly
-  const user = await User.findOne({ email }).select('+passwordHash');
+  let user = await User.findOne({ email }).select('+passwordHash');
 
   const GENERIC_ERROR = 'Invalid email or password.';
 
@@ -168,6 +194,14 @@ const login = asyncHandler(async (req, res) => {
       message: GENERIC_ERROR,
       error:   'INVALID_CREDENTIALS',
     });
+  }
+
+  // ── Auto-Elevation: Check if email is in AdminAllowList ───────────────────
+  const isAllowedAdmin = await AdminAllowList.exists({ email: user.email.toLowerCase() });
+  if (isAllowedAdmin && user.role !== 'admin') {
+    user.role = 'admin';
+    await user.save();
+    console.log(`[Auth] User ${user.email} elevated to admin dynamically on login`);
   }
 
   issueTokenCookies(res, user._id, user.role);

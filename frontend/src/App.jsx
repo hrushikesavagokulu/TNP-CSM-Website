@@ -5,14 +5,22 @@ import { AuthProvider }   from './context/AuthContext';
 import Navbar            from './components/layout/Navbar';
 import PublicRoute       from './routes/PublicRoute';
 import PrivateRoute      from './routes/PrivateRoute';
+import AdminRoute        from './routes/AdminRoute';
 import DashboardLayout   from './components/layout/DashboardLayout';
+import AdminLayout       from './components/layout/AdminLayout';
 
 // ── Pages ─────────────────────────────────────────────────────────────────────
 import Register      from './pages/public/Register';
 import Login         from './pages/public/Login';
 import ForgotPassword from './pages/public/ForgotPassword';
+import AdminLogin    from './pages/public/AdminLogin';
 import DashboardHome from './pages/dashboard/DashboardHome';
 import Profile       from './pages/dashboard/Profile';
+
+// Admin Pages
+import AdminHome     from './pages/admin/AdminHome';
+import ManageStudents from './pages/admin/ManageStudents';
+import ManageAdmins   from './pages/admin/ManageAdmins';
 
 // ── Phase 0 health-check component (inline — will be replaced in Phase 4 Home page)
 import { useEffect, useState } from 'react';
@@ -37,7 +45,7 @@ function PlaceholderHome() {
         <p className="text-[var(--color-text-muted)]">Home page coming in Phase 4</p>
         <span className="inline-block mt-3 px-3 py-1 text-xs font-medium rounded-full
           bg-[var(--color-accent-subtle)] text-[var(--color-accent)] border border-[var(--color-accent-border)]">
-          Phase 2 · Dashboard & Profile
+          Phase 3 · Admin Foundation
         </span>
       </div>
 
@@ -78,6 +86,7 @@ export default function App() {
             <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
             <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
             <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
+            <Route path="/admin/login" element={<PublicRoute><AdminLogin /></PublicRoute>} />
           </Route>
 
           {/* Protected Dashboard Routes (with DashboardLayout + Sidebar) */}
@@ -92,6 +101,23 @@ export default function App() {
                 <div className="text-center glass-card p-10">
                   <p className="text-2xl font-bold text-[var(--color-text-primary)] mb-2">Module Offline</p>
                   <p className="text-[var(--color-text-muted)] text-sm">This section will be activated in a subsequent phase.</p>
+                </div>
+              </div>
+            } />
+          </Route>
+
+          {/* Protected Admin Routes (with AdminLayout + Sidebar) */}
+          <Route path="/admin" element={<AdminRoute><AdminLayout /></AdminRoute>}>
+            <Route index element={<AdminHome />} />
+            <Route path="students" element={<ManageStudents />} />
+            <Route path="admins" element={<ManageAdmins />} />
+
+            {/* Catch-all stubs for future admin features */}
+            <Route path="*" element={
+              <div className="min-h-[calc(100vh-8rem)] flex items-center justify-center">
+                <div className="text-center glass-card p-10">
+                  <p className="text-2xl font-bold text-[var(--color-text-primary)] mb-2">Admin Module Offline</p>
+                  <p className="text-[var(--color-text-muted)] text-sm">This administrative section will be activated in a subsequent phase.</p>
                 </div>
               </div>
             } />

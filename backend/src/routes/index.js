@@ -11,6 +11,11 @@ const authRoutes    = require('./auth.routes');
 const studentRoutes = require('./student/profile.routes');
 const profileCtrl   = require('../controllers/profile.controller');
 const authenticate  = require('../middleware/auth.middleware');
+const { requireRole } = require('../middleware/role.middleware');
+
+// Admin sub-routers
+const adminStudents = require('./admin/students.routes');
+const adminAdmins   = require('./admin/admins.routes');
 
 const router = express.Router();
 
@@ -19,6 +24,10 @@ router.use('/auth', authRoutes);
 
 // Mount student routes at /api/v1/student
 router.use('/student', studentRoutes);
+
+// Mount admin routes under /api/v1/admin (all gated by auth and admin role)
+router.use('/admin/students', authenticate, requireRole('admin'), adminStudents);
+router.use('/admin/admins',   authenticate, requireRole('admin'), adminAdmins);
 
 // Mount shared skills catalogue lookup (requires authentication)
 router.get('/skills-catalogue', authenticate, profileCtrl.getSkillsCatalogue);

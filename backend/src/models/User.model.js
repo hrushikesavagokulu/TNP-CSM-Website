@@ -31,7 +31,8 @@ const userSchema = new mongoose.Schema(
     name:   { type: String, required: true, trim: true },
     rollNo: {
       type: String,
-      required: true,
+      required: function() { return this.role === 'student'; },
+      sparse: true,
       unique: true,
       trim: true,
       uppercase: true,

@@ -40,15 +40,26 @@ export default function Navbar() {
 
           {user ? (
             <>
-              <Link
-                to="/dashboard"
-                id="navbar-dashboard-btn"
-                className="px-4 py-2 text-sm font-medium rounded-lg
-                  text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]
-                  hover:bg-[var(--color-accent-subtle)] transition-all duration-150"
-              >
-                Dashboard
-              </Link>
+              {user.role === 'admin' ? (
+                <Link
+                  to="/admin"
+                  id="navbar-admin-panel-btn"
+                  className="px-4 py-2 text-sm font-semibold rounded-lg
+                    text-red-500 hover:bg-red-500/10 transition-all duration-150"
+                >
+                  Admin Panel
+                </Link>
+              ) : (
+                <Link
+                  to="/dashboard"
+                  id="navbar-dashboard-btn"
+                  className="px-4 py-2 text-sm font-medium rounded-lg
+                    text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]
+                    hover:bg-[var(--color-accent-subtle)] transition-all duration-150"
+                >
+                  Dashboard
+                </Link>
+              )}
               <button
                 id="navbar-logout-btn"
                 onClick={handleLogout}
@@ -79,6 +90,14 @@ export default function Navbar() {
                   transition-all duration-150 hover:-translate-y-px"
               >
                 Register
+              </Link>
+              <Link
+                to="/admin/login"
+                id="navbar-admin-login-btn"
+                className="ml-2 px-3 py-1.5 text-xs font-bold rounded-lg border border-red-500/40
+                  text-red-500 hover:bg-red-500/10 transition-all duration-150 hover:-translate-y-px"
+              >
+                🛡️ Admin
               </Link>
             </>
           )}

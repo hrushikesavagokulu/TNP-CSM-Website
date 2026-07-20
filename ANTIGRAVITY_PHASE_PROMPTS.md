@@ -651,6 +651,125 @@ strictly to student/admin roster management.
 ```
 
 ---
+ROLE: You are revising the admin system in "TMP — CSM Department Web Platform". Phase 1 (auth)
+and Phase 3 (admin foundation) are already built. This prompt changes admin login/creation
+behavior — read it fully before touching code, since it overrides part of what Phase 3 originally
+specified.
+
+NEW ADMIN MODEL (read carefully):
+- Admins are NEVER self-registered through OTP. There is no "admin register" page and there never
+  will be.
+- KEEP the existing "Add Admin by Email" allow-list feature exactly as it is (an existing admin
+  adds an email; if that email later completes normal student OTP registration or logs in, it gets
+  elevated to role:'admin'). Do not remove this.
+- ADD a new, separate way to create an admin: an existing admin can directly create a fully-formed
+  admin account by entering Name, Email, and Password themselves, right there in the Manage Admins
+  page. No OTP, no email sent by the system at all. The creating admin shares those credentials
+  with the new admin manually, outside the app (verbally, chat, etc.).
+- An admin can ONLY log in with email+password. There is no dashboard for admins — ever. On
+  successful admin login, they land directly on `/admin` and never see `/dashboard` at all.
+- Add a distinct "Admin" entry point in the public Navbar (separate from the student
+  Login/Register buttons) so admins have a clear, direct way in.
+
+BACKEND — make exactly these changes:
+
+1. `backend/src/controllers/admin/admins.admin.controller.js` — add a new handler:
+   - `POST /api/v1/admin/admins/create-credentials` (admin-gated, same as every other
+     `/admin/admins/*` route): body `{name, email, password}`. Validate: email not already in use
+     by any existing User (student or admin) and not already on the AdminAllowList as a pending
+     invite (if it is, just remove it from the allow-list since we're creating the real account
+     directly now — don't leave a stale pending invite around). Validate password meets the same
+     minimum strength rule used in `auth.validators.js` (min 8 chars, at least one number).
+     bcrypt-hash the password (cost 12), create a `User` doc directly with
+     `{name, email, passwordHash, role:'admin', isActive:true}` — no `rollNo` is needed for an
+     admin account, so make `rollNo` optional/nullable on `User.model.js` if it currently requires
+     it (go back and loosen that constraint: `rollNo` should be required only when `role ===
+     'student'` — implement this as a conditional-required validator on the schema, not just
+     dropping `required` entirely). Do NOT send any email. Respond with the created admin's
+     `{name, email, _id}` only — never return the password or passwordHash.
+   - Mount this at `backend/src/routes/admin/admins.routes.js` alongside the existing
+     allow-list routes from Phase 3.
+
+2. `backend/src/models/User.model.js` — update `rollNo`'s schema definition to be conditionally
+   required: `required: function() { return this.role === 'student'; }`. Also drop the `unique`
+   constraint's strictness for `null` values if your MongoDB/Mongoose version errors on multiple
+   `null` rollNo values under a unique index — use a partial/sparse unique index on `rollNo`
+   instead (`{unique: true, sparse: true}`) so multiple admin accounts with no rollNo don't
+   collide with each other.
+
+3. `backend/src/controllers/auth.controller.js` — no changes needed to `/auth/login` itself (it
+   already works for any User regardless of how the account was created), but double-check: the
+   existing `/auth/register` endpoint must NEVER be reachable in a way that lets someone
+   self-register as an admin — confirm it always creates `role:'student'` explicitly and only
+   elevates via the allow-list check AFTER creation, exactly as Phase 3 already built it. No
+   change needed here if that's already correct — just verify it, since this revision must not
+   accidentally open a self-registration path to admin.
+
+FRONTEND — make exactly these changes:
+
+1. `frontend/src/pages/public/AdminLogin.jsx` (NEW page) — a minimal login form: Email, Password,
+   "Login" button, and a "Forgot Password?" link (reuse the existing OTP-based forgot-password
+   flow from Phase 1 — admins can still recover a forgotten password that way, it's just not how
+   the account was originally created). Do NOT show a "Register" link on this page at all — there
+   is nothing to register for. On submit, call the SAME `/auth/login` endpoint used by the student
+   Login page. After a successful response, check `user.role`: if it is NOT `'admin'`,
+   immediately call `logout()` and show an error ("These credentials do not belong to an admin
+   account — use the student login instead") rather than letting a student account log in through
+   this page. If `role === 'admin'`, navigate straight to `/admin`.
+
+2. `frontend/src/components/layout/Navbar.jsx` — update the auth-aware button logic:
+   - If `!user`: show "Login", "Register" (both existing, student-facing), AND a new, visually
+     distinct "Admin" link/button pointing to `/admin/login`.
+   - If `user` and `user.role === 'student'`: unchanged from before — show "Dashboard" + "Logout".
+   - If `user` and `user.role === 'admin'`: show "Admin Panel" (linking to `/admin`) + "Logout" —
+     do NOT show a "Dashboard" link at all for admins, since they should never be routed there.
+
+3. `frontend/src/pages/public/Login.jsx` (the existing STUDENT login page from Phase 1) — no
+   functional change needed, but double check its post-login redirect logic: if the account that
+   just logged in here happens to have `role === 'admin'` (e.g. someone bookmarked the student
+   login page), still correctly redirect to `/admin`, not `/dashboard` — this should already be
+   the case per the original Phase 1 design, just confirm it wasn't broken.
+
+4. `frontend/src/pages/admin/ManageAdmins.jsx` — restructure into two clearly-labeled sections:
+   - **"Create Admin Account"** (the new primary method): Name, Email, Password, Confirm Password
+     fields, a "Create" button calling the new `create-credentials` endpoint. On success, show a
+     prominent, explicit confirmation message: "Admin account created. Share these credentials
+     with them directly — no email has been sent." (do not display the password again after
+     creation; the admin who filled the form already knows it since they typed it).
+   - **"Invite by Email" (legacy)**: the existing Phase-3 "Add Admin by Email" allow-list flow,
+     kept working exactly as before, just visually separated and labeled so it's clear these are
+     two different mechanisms.
+   - The existing admins list/table and "Remove Admin" action stay as they were in Phase 3.
+
+5. `frontend/src/routes/AdminRoute.jsx` — no change needed (already blocks non-admins from
+   `/admin/*`), but as a final check, confirm there is genuinely no code path anywhere that routes
+   a `role:'admin'` user to `/dashboard` after login, in either `Login.jsx` or the new
+   `AdminLogin.jsx`.
+
+6. Update `App.jsx`: add the new public route `/admin/login` (wrapped in `PublicRoute`, same as
+   `/login`/`/register`).
+
+7. `frontend/src/services/admin/admins.service.js` — add the wrapper for the new
+   `create-credentials` call.
+
+VERIFY BEFORE MOVING ON:
+1. As an existing admin, create a new admin account via "Create Admin Account" (name/email/
+   password, no OTP anywhere in the flow) — confirm no email was sent (check your mailbox to be
+   sure) and the new account appears in the admins list immediately.
+2. Log out, go to `/admin/login`, log in with those exact credentials — confirm it lands directly
+   on `/admin` with zero detour through `/dashboard`.
+3. Confirm `/admin/login` has NO "Register" link anywhere on the page.
+4. Attempt to log in on `/admin/login` using a real STUDENT account's credentials — confirm it's
+   rejected with the specific "not an admin account" message and the student is NOT left logged
+   in afterward.
+5. Confirm the Navbar shows a distinct "Admin" entry point when logged out, and switches to
+   "Admin Panel" (never "Dashboard") once logged in as an admin.
+6. Confirm the OLD "Invite by Email" allow-list flow from Phase 3 still works exactly as before
+   (add an email, that person self-registers via normal OTP flow, gets elevated to admin) —
+   this revision must not have broken it.
+7. Confirm a brand-new admin account created via credentials (no rollNo) doesn't break any
+   existing query/page that assumes students always have a rollNo (e.g. Search Students, Manage
+   Students) — admins should simply never appear in those student-only listings.
 
 ## PHASE 4 PROMPT — Public Home Page & Department Content
 
