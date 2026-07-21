@@ -63,6 +63,14 @@ const messageSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+// Compound index for paginated message history queries (space + time order)
 messageSchema.index({ space: 1, createdAt: 1 });
+
+// ── TTL Index — auto-delete messages older than 30 days ───────────────────────
+// MongoDB's background TTL thread runs roughly every 60 seconds and removes
+// any Message document where createdAt is older than 2,592,000 seconds (30 days).
+// No application-level cron job needed — MongoDB handles this natively.
+// On fresh deploy this index is created automatically when the app starts.
+messageSchema.index({ createdAt: 1 }, { expireAfterSeconds: 2_592_000 });
 
 module.exports = mongoose.model('Message', messageSchema);
