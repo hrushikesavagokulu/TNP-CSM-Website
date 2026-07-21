@@ -19,13 +19,14 @@ async function recalculateCompletionPercent(userId) {
   // Get total curated roadmap items in the DB
   let totalRoadmapItems = 0;
   
-  // Checking mongoose.models defensively because SkillRoadmap is defined in Phase 7
+  // SkillRoadmap is now defined in Phase 7
   if (mongoose.models.SkillRoadmap) {
     try {
       const SkillRoadmap = mongoose.model('SkillRoadmap');
+      // Count only active, admin-published roadmap items (isActive: true)
       totalRoadmapItems = await SkillRoadmap.countDocuments({ isActive: true });
     } catch (err) {
-      console.warn('[Progress] SkillRoadmap model check failed, defaulting total to 0:', err.message);
+      console.warn('[Progress] SkillRoadmap count failed, defaulting total to 0:', err.message);
       totalRoadmapItems = 0;
     }
   }

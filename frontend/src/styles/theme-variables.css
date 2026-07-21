@@ -4,6 +4,39 @@
    are the single source of truth for cross-component theming.
 ──────────────────────────────────────────────────────────────────────────── */
 
+/* ── Fallback & Dark theme default ───────────────────────────────────────── */
+:root,
+[data-theme="dark"] {
+  --color-bg:            #080c16; /* Deep Cosmic Void */
+  --color-bg-secondary:  #0e1424;
+  --color-surface:       #121b2e; /* Luxury Midnight Blue Card Surface */
+  --color-surface-raised:#1a263f;
+  --color-border:        #1e293b;
+  --color-border-subtle: #0f172a;
+
+  --color-text-primary:  #f8fafc;
+  --color-text-secondary:#cbd5e1;
+  --color-text-muted:    #64748b;
+  --color-text-inverse:  #080c16;
+
+  --color-accent:        #818cf8; /* Electric Neon Indigo */
+  --color-accent-hover:  #a5b4fc;
+  --color-accent-subtle: rgba(129, 140, 248, 0.12);
+  --color-accent-border: rgba(129, 140, 248, 0.3);
+
+  --color-success:       #34d399;
+  --color-success-bg:    rgba(52, 211, 153, 0.10);
+  --color-warning:       #fbbf24;
+  --color-warning-bg:    rgba(251, 191, 36, 0.10);
+  --color-error:         #f87171;
+  --color-error-bg:      rgba(248, 113, 113, 0.10);
+
+  --shadow-sm:           0 1px 2px rgba(0,0,0,0.30);
+  --shadow-md:           0 4px 16px rgba(0,0,0,0.40);
+  --shadow-lg:           0 8px 36px rgba(0,0,0,0.50);
+  --shadow-xl:           0 16px 48px rgba(0,0,0,0.65);
+}
+
 /* ── Light theme ─────────────────────────────────────────────────────────── */
 [data-theme="light"] {
   --color-bg:            #f8fafc;

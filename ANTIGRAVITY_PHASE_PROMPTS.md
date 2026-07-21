@@ -1564,6 +1564,239 @@ phases, and Phases 8 and 9 will explicitly REUSE `ContentBlockRenderer`/`Content
 here rather than creating new ones, so make sure both components are genuinely generic (not
 accidentally hardcoded to assume "skill roadmap" naming/shape anywhere in their internals).
 ```
+You're right. You **don't want me to design my own roadmap**. You only want me to extract **exactly what you described** from your uploaded documents regarding:
+
+* Semester Wise Skill Roadmap
+* Modules
+* Module Wise Roadmap
+* Skill Roadmap
+* Filters
+* Dynamic Fields
+* Admin Controls
+* Student View
+
+Below is **only what exists in your documents**, organized.
+
+---
+
+# Semester Wise Skill Roadmap
+
+## Student Side
+
+The Semester Wise Skill Roadmap should be available to **all students**.
+
+Each semester should contain
+
+* Semester Name
+* Skill Groups
+* Skills
+* Skill Description
+* Mandatory Skills Section
+* References
+* Practice References
+* YouTube Links
+* Navigation Links
+* Certification References
+* Any other resources related to that skill
+* Completion Checkbox
+* Progress Tracking
+
+When clicking a skill it should show
+
+* Description
+* References
+* Practice References
+* YouTube Links
+* Navigation Links
+* Certification References
+* Any additional content added by admin
+
+There should also be a dedicated section showing
+
+* Mandatory Skills to Learn
+
+The entire Semester Wise Skill Roadmap is editable by Admin. 
+
+---
+
+# Module Wise Roadmap
+
+There should be modules for every semester.
+
+For every year and semester students should have modules like
+
+* Learn Programming
+* Learn OOPS
+* Learn DSA
+* Do Resume
+* Do Projects
+* Learn Specific Skill
+* Learn whatever is required in that semester
+
+Every module should contain a completion checkbox.
+
+Progress should be tracked using these checkboxes. 
+
+---
+
+# Progress Tracking
+
+Every roadmap item should contain
+
+* Checkbox
+* Completion Status
+
+Overall dashboard should calculate
+
+* Progress Percentage
+
+Profile Card should always show
+
+* Current Progress
+
+Dashboard Progress should update whenever a checkbox is completed.  
+
+---
+
+# Learning Resources Module
+
+Separate page containing
+
+* Learning References
+* Practice References
+* YouTube Resources
+* Resources for every skill
+
+Admin should manage everything dynamically. 
+
+---
+
+# Certifications Module
+
+Semester Wise Certifications page should contain
+
+* Semester Name
+* Certification List
+* Description
+* Resources
+* Where to do certification
+* How to complete certification
+* How to apply for certification exam
+* Reference Links
+* Navigation Links
+
+Admin can
+
+* Add
+* Edit
+* Delete
+* Update certifications dynamically. 
+
+---
+
+# Flexible Content (Applicable to Skill Roadmap, Certifications, Learning Resources, Resume Guide)
+
+Admin should **not** be restricted to a fixed template.
+
+For every section, admin should be able to add content in **any order** and **any format**.
+
+Possible content includes
+
+* Text
+* Description
+* Links
+* Images
+* Videos
+* PDFs
+* Files
+* YouTube Links
+* Practice Links
+* Documentation
+* Reference Material
+* Navigation Links
+* Certification References
+
+There should be **no static template**. Admin decides the structure.  
+
+---
+
+# Skill Roadmap Data
+
+Each Skill Roadmap entry should support
+
+* Semester
+* Skill Name
+* Description
+* Mandatory or Not
+* Links
+* References
+* YouTube Links
+* Practice Navigation
+* Certification References
+* Any additional information the admin wants to include
+
+Again, there should be **no fixed template**. 
+
+---
+
+# Resume Guide Module
+
+Resume Guide should contain
+
+* Resume Templates
+* Resume References
+* Resume Order
+* Resume Building Guide
+* ATS Score Navigation Links
+* Resume Improvement Resources
+
+Admin should be able to
+
+* Add Templates
+* Edit Templates
+* Edit Descriptions
+
+Everything should be dynamic.  
+
+---
+
+# Admin Controls
+
+Admin should have complete control over
+
+* Module Wise Editing
+* Semester Editing
+* Module Editing
+* Skill Roadmap
+* Semester Wise Certifications
+* Learning References
+* Resume Guide
+* Add/Edit/Delete Content
+* Upload Photos
+* Upload Videos
+* Upload PDFs
+* Upload Files
+* Add Links
+* Add Descriptions
+* Arrange Content in Any Order
+
+No section should have a static structure. 
+
+---
+
+# Student Dashboard Cards
+
+Dashboard should contain quick access cards for
+
+* Module Wise Roadmap
+* Semester Wise Skill Roadmap
+* Semester Wise Certifications Guide
+* Learning Resources
+* Resume Guide & ATS Score
+
+These are part of the main student dashboard. 
+
+This is **only the information present in your uploaded documents**, reorganized into a structured format without adding any new roadmap, skills, or assumptions.
 
 ---
 

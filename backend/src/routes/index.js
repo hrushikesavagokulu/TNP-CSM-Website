@@ -26,7 +26,18 @@ const publicRoutes  = require('./public.routes');
 
 // Student announcement & achievement sub-routers
 const studentAnnouncements = require('./student/announcement.routes');
-const studentAchievements   = require('./student/achievement.routes');
+const studentAchievements  = require('./student/achievement.routes');
+const studentContent       = require('./student/content.routes');
+
+// Admin content routers (Phase 7 — all four use same factory)
+const { roadmapRouter, certRouter, resourceRouter, resumeRouter } = require('./admin/content.routes');
+// Admin Phase 8 routers
+const adminCompanies   = require('./admin/companies.routes');
+const adminAlumniRepos = require('./admin/alumniRepos.routes');
+
+// Student Phase 8 routers
+const studentCompanies   = require('./student/companyInfo.routes');
+const studentAlumniRepos = require('./student/alumniRepo.routes');
 
 const router = express.Router();
 
@@ -40,16 +51,30 @@ router.use('/student', studentRoutes);
 router.use('/public', publicRoutes);
 
 // Mount admin routes under /api/v1/admin (all gated by auth and admin role)
-router.use('/admin/students',        authenticate, requireRole('admin'), adminStudents);
-router.use('/admin/admins',          authenticate, requireRole('admin'), adminAdmins);
-router.use('/admin/department-info', authenticate, requireRole('admin'), adminDeptInfo);
-router.use('/admin/batches',         authenticate, requireRole('admin'), adminBatches);
-router.use('/admin/announcements',   authenticate, requireRole('admin'), adminAnnouncements);
-router.use('/admin/achievements',    authenticate, requireRole('admin'), adminAchievements);
+router.use('/admin/students',          authenticate, requireRole('admin'), adminStudents);
+router.use('/admin/admins',            authenticate, requireRole('admin'), adminAdmins);
+router.use('/admin/department-info',   authenticate, requireRole('admin'), adminDeptInfo);
+router.use('/admin/batches',           authenticate, requireRole('admin'), adminBatches);
+router.use('/admin/announcements',     authenticate, requireRole('admin'), adminAnnouncements);
+router.use('/admin/achievements',      authenticate, requireRole('admin'), adminAchievements);
+// Phase 7 — content module admin routes (all served by same factory)
+router.use('/admin/skill-roadmap',     authenticate, requireRole('admin'), roadmapRouter);
+router.use('/admin/certifications',    authenticate, requireRole('admin'), certRouter);
+router.use('/admin/learning-resources', authenticate, requireRole('admin'), resourceRouter);
+router.use('/admin/resume-guide',      authenticate, requireRole('admin'), resumeRouter);
+// Phase 8 — companies & alumni admin routes
+router.use('/admin/companies',         authenticate, requireRole('admin'), adminCompanies);
+router.use('/admin/alumni-repos',      authenticate, requireRole('admin'), adminAlumniRepos);
+router.use('/admin/alumni',            authenticate, requireRole('admin'), adminAlumniRepos);
 
 // Mount student announcement & achievement routes at /api/v1/student
 router.use('/student', studentAnnouncements);
 router.use('/student/achievements', authenticate, studentAchievements);
+// Phase 7 — student content routes
+router.use('/student', studentContent);
+// Phase 8 — student company & alumni routes
+router.use('/student', studentCompanies);
+router.use('/student', studentAlumniRepos);
 
 // Mount shared skills catalogue lookup (requires authentication)
 router.get('/skills-catalogue', authenticate, profileCtrl.getSkillsCatalogue);

@@ -7,12 +7,12 @@ import SearchStudents from '../../components/shared/SearchStudents';
 const TILES = [
   { name: 'Announcements', count: 'Live', icon: '🔔', desc: 'Department notices, placement news and notifications', path: '/dashboard/announcements' },
   { name: 'Events', count: 'Coming Soon', icon: '📅', desc: 'Register for mock interviews, coding contests, and upload event certificates (NPTEL, Coursera, tech certs)', path: null },
-  { name: 'Semester-wise Skill Roadmap', count: 'Coming Soon', icon: '🗺️', desc: 'Track semester-wise roadmap goals and check academic progress', path: null },
-  { name: 'Semester Certifications & Achievements', count: 'Coming Soon', icon: '🏅', desc: 'Manage and view your semester-wise certifications and achievements', path: null },
-  { name: 'Company Profiles', count: 'Coming Soon', icon: '🏢', desc: 'Browse recruiting partners and job descriptions', path: null },
-  { name: 'Alumni Repository', count: 'Coming Soon', icon: '🎓', desc: 'Browse interview experiences and projects', path: null },
-  { name: 'Learning Resources', count: 'Coming Soon', icon: '📚', desc: 'Curated study materials, lab guides and notes', path: null },
-  { name: 'Resume Guide', count: 'Coming Soon', icon: '📄', desc: 'Build and format professional resumes', path: null },
+  { name: 'Semester-wise Skill Roadmap', count: 'Live', icon: '🗺️', desc: 'Track semester-wise roadmap goals and check academic progress', path: '/dashboard/skill-roadmap' },
+  { name: 'Semester Certifications & Achievements', count: 'Live', icon: '🏅', desc: 'Browse recommended semester-wise certifications', path: '/dashboard/certifications' },
+  { name: 'Company Profiles', count: 'Live', icon: '🏢', desc: 'Browse placement drives, round-by-round statistics, and recruitment criteria', path: '/dashboard/companies' },
+  { name: 'Alumni Repository', count: 'Live', icon: '🎓', desc: 'Browse placement reviews, interview questions, and tips from placed alumni', path: '/dashboard/alumni-repos' },
+  { name: 'Learning Resources', count: 'Live', icon: '📚', desc: 'Curated study materials, lab guides and notes', path: '/dashboard/learning-resources' },
+  { name: 'Resume Guide', count: 'Live', icon: '📄', desc: 'Build and format professional resumes with department guidance', path: '/dashboard/resume-guide' },
   { name: 'Connect Sphere', count: 'Coming Soon', icon: '💬', desc: 'Chat and coordinate with fellow classmates', path: null },
 ];
 

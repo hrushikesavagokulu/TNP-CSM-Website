@@ -27,6 +27,20 @@ import ManageDepartmentInfo from './pages/admin/ManageDepartmentInfo';
 import ManageBatches       from './pages/admin/ManageBatches';
 import ManageAnnouncements from './pages/admin/ManageAnnouncements';
 import ManageAchievements  from './pages/admin/ManageAchievements';
+import ManageSkillRoadmap  from './pages/admin/ManageSkillRoadmap';
+import ManageCertifications from './pages/admin/ManageCertifications';
+import ManageLearningResources from './pages/admin/ManageLearningResources';
+import ManageResumeGuide   from './pages/admin/ManageResumeGuide';
+import ManageCompanies     from './pages/admin/ManageCompanies';
+import ManageAlumniRepos   from './pages/admin/ManageAlumniRepos';
+
+// Student Phase 7 & 8 Pages
+import SkillRoadmap      from './pages/dashboard/SkillRoadmap';
+import Certifications    from './pages/dashboard/Certifications';
+import LearningResources from './pages/dashboard/LearningResources';
+import ResumeGuide       from './pages/dashboard/ResumeGuide';
+import Companies         from './pages/dashboard/Companies';
+import AlumniRepos       from './pages/dashboard/AlumniRepos';
 
 // ── Shared Public Layout (displays main Navbar) ──────────────────────────────
 function PublicLayout() {
@@ -61,6 +75,13 @@ export default function App() {
             <Route path="profile" element={<Profile />} />
             <Route path="profile/:rollNo" element={<Profile />} />
             <Route path="announcements" element={<StudentAnnouncements />} />
+            <Route path="skill-roadmap" element={<SkillRoadmap />} />
+            <Route path="certifications" element={<Certifications />} />
+            <Route path="learning-resources" element={<LearningResources />} />
+            <Route path="resume-guide" element={<ResumeGuide />} />
+            <Route path="companies" element={<Companies />} />
+            <Route path="alumni-repos" element={<AlumniRepos />} />
+            <Route path="alumni" element={<AlumniRepos />} />
             
             {/* Catch-all stubs for features not yet built */}
             <Route path="*" element={
@@ -81,8 +102,14 @@ export default function App() {
             <Route path="department-info" element={<ManageDepartmentInfo />} />
             <Route path="batches" element={<ManageBatches />} />
             <Route path="announcements" element={<ManageAnnouncements />} />
-            <Route path="certifications" element={<ManageAchievements />} />
+            <Route path="certifications" element={<ManageCertifications />} />
             <Route path="achievements" element={<ManageAchievements />} />
+            <Route path="skill-roadmap" element={<ManageSkillRoadmap />} />
+            <Route path="learning-resources" element={<ManageLearningResources />} />
+            <Route path="resume-guide" element={<ManageResumeGuide />} />
+            <Route path="companies" element={<ManageCompanies />} />
+            <Route path="alumni-repos" element={<ManageAlumniRepos />} />
+            <Route path="alumni" element={<ManageAlumniRepos />} />
 
             {/* Catch-all stubs for future admin features */}
             <Route path="*" element={
