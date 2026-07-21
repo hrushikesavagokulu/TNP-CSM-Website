@@ -13,7 +13,7 @@ const TILES = [
   { name: 'Alumni Repository', count: 'Live', icon: '🎓', desc: 'Browse placement reviews, interview questions, and tips from placed alumni', path: '/dashboard/alumni-repos' },
   { name: 'Learning Resources', count: 'Live', icon: '📚', desc: 'Curated study materials, lab guides and notes', path: '/dashboard/learning-resources' },
   { name: 'Resume Guide', count: 'Live', icon: '📄', desc: 'Build and format professional resumes with department guidance', path: '/dashboard/resume-guide' },
-  { name: 'Connect Sphere', count: 'Coming Soon', icon: '💬', desc: 'Chat and coordinate with fellow classmates', path: null },
+  { name: 'Connect Sphere', count: 'Live', icon: '💬', desc: 'Real-time community chat space for CSM department students', path: '/dashboard/connect-sphere' },
 ];
 
 

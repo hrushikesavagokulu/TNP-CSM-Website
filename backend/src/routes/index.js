@@ -31,18 +31,28 @@ const studentContent       = require('./student/content.routes');
 
 // Admin content routers (Phase 7 — all four use same factory)
 const { roadmapRouter, certRouter, resourceRouter, resumeRouter } = require('./admin/content.routes');
-// Admin Phase 8 routers
+// Phase 8 & 10 admin routers
 const adminCompanies   = require('./admin/companies.routes');
 const adminAlumniRepos = require('./admin/alumniRepos.routes');
+const adminChat        = require('./admin/chat.routes');
 
-// Student Phase 8 routers
+// Student Phase 8 & 10 routers
 const studentCompanies   = require('./student/companyInfo.routes');
 const studentAlumniRepos = require('./student/alumniRepo.routes');
+const studentChat        = require('./student/chat.routes');
+
+const { uploadGeneric }     = require('../controllers/upload.controller');
+const genericUpload         = require('../middleware/genericUpload.middleware');
 
 const router = express.Router();
 
 // Mount auth routes at /api/v1/auth
 router.use('/auth', authRoutes);
+
+// Universal File Upload Endpoints
+router.post('/upload',         authenticate, genericUpload, uploadGeneric);
+router.post('/student/upload', authenticate, genericUpload, uploadGeneric);
+router.post('/admin/upload',   authenticate, requireRole('admin'), genericUpload, uploadGeneric);
 
 // Mount student routes at /api/v1/student
 router.use('/student', studentRoutes);
@@ -66,6 +76,9 @@ router.use('/admin/resume-guide',      authenticate, requireRole('admin'), resum
 router.use('/admin/companies',         authenticate, requireRole('admin'), adminCompanies);
 router.use('/admin/alumni-repos',      authenticate, requireRole('admin'), adminAlumniRepos);
 router.use('/admin/alumni',            authenticate, requireRole('admin'), adminAlumniRepos);
+// Phase 10 — chat admin routes
+router.use('/admin/chat',              authenticate, requireRole('admin'), adminChat);
+router.use('/admin/connect-sphere',    authenticate, requireRole('admin'), adminChat);
 
 // Mount student announcement & achievement routes at /api/v1/student
 router.use('/student', studentAnnouncements);
@@ -75,6 +88,8 @@ router.use('/student', studentContent);
 // Phase 8 — student company & alumni routes
 router.use('/student', studentCompanies);
 router.use('/student', studentAlumniRepos);
+// Phase 10 — student chat routes
+router.use('/student', studentChat);
 
 // Mount shared skills catalogue lookup (requires authentication)
 router.get('/skills-catalogue', authenticate, profileCtrl.getSkillsCatalogue);

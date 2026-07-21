@@ -33,14 +33,16 @@ import ManageLearningResources from './pages/admin/ManageLearningResources';
 import ManageResumeGuide   from './pages/admin/ManageResumeGuide';
 import ManageCompanies     from './pages/admin/ManageCompanies';
 import ManageAlumniRepos   from './pages/admin/ManageAlumniRepos';
+import ManageConnectSphere from './pages/admin/ManageConnectSphere';
 
-// Student Phase 7 & 8 Pages
+// Student Phase 7, 8 & 10 Pages
 import SkillRoadmap      from './pages/dashboard/SkillRoadmap';
 import Certifications    from './pages/dashboard/Certifications';
 import LearningResources from './pages/dashboard/LearningResources';
 import ResumeGuide       from './pages/dashboard/ResumeGuide';
 import Companies         from './pages/dashboard/Companies';
 import AlumniRepos       from './pages/dashboard/AlumniRepos';
+import ConnectSphere     from './pages/dashboard/ConnectSphere';
 
 // ── Shared Public Layout (displays main Navbar) ──────────────────────────────
 function PublicLayout() {
@@ -82,6 +84,8 @@ export default function App() {
             <Route path="companies" element={<Companies />} />
             <Route path="alumni-repos" element={<AlumniRepos />} />
             <Route path="alumni" element={<AlumniRepos />} />
+            <Route path="connect-sphere" element={<ConnectSphere />} />
+            <Route path="chat" element={<ConnectSphere />} />
             
             {/* Catch-all stubs for features not yet built */}
             <Route path="*" element={
@@ -110,6 +114,8 @@ export default function App() {
             <Route path="companies" element={<ManageCompanies />} />
             <Route path="alumni-repos" element={<ManageAlumniRepos />} />
             <Route path="alumni" element={<ManageAlumniRepos />} />
+            <Route path="connect-sphere" element={<ManageConnectSphere />} />
+            <Route path="chat" element={<ManageConnectSphere />} />
 
             {/* Catch-all stubs for future admin features */}
             <Route path="*" element={

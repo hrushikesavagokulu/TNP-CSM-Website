@@ -10,20 +10,28 @@ const app = require('./src/app');
 const connectDB = require('./src/config/db');
 const { connectRedis } = require('./src/config/redis');
 
+const seedPermanentChatSpace = require('./src/scripts/seedPermanentChatSpace');
+const { initSockets } = require('./src/sockets');
+
 const { startExpireAnnouncementsCron } = require('./src/jobs/expireAnnouncements.cron');
 const { startExpireAchievementsCron } = require('./src/jobs/expireAchievements.cron');
 const { startExpireEventsCron } = require('./src/jobs/expireEvents.cron');
 
 const PORT = process.env.PORT || 5000;
 
-// ── 2. Create HTTP server (Socket.io will attach here in a later phase) ───────
+// ── 2. Create HTTP server & attach Socket.io ─────────────────────────────────
 const server = http.createServer(app);
+const io = initSockets(server);
+app.set('io', io);
 
-// ── 3. Connect to data stores, then start listening ──────────────────────────
+// ── 3. Connect to data stores, seed permanent space, then start listening ───────
 (async () => {
   try {
     await connectDB();
     await connectRedis();
+
+    // Idempotent boot-time seed for permanent chat space
+    await seedPermanentChatSpace();
 
     // Start background cron jobs
     startExpireAnnouncementsCron();
