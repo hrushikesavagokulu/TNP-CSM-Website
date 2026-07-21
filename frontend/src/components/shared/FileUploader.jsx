@@ -58,7 +58,7 @@ export default function FileUploader({ uploadUrl, fieldName, accept, maxSizeMB =
       });
 
       if (res.data.success) {
-        onUploadComplete?.(res.data.data.fileUrl);
+        onUploadComplete?.(res.data.data.fileUrl || res.data.data.url, res.data.data);
       } else {
         setError(res.data.message || 'Upload failed');
       }

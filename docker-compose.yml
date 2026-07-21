@@ -9,7 +9,7 @@ services:
     volumes:
       - mongo-data:/data/db
     healthcheck:
-      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      test: [ "CMD", "mongosh", "--eval", "db.adminCommand('ping')" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -25,7 +25,7 @@ services:
     volumes:
       - redis-data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: [ "CMD", "redis-cli", "ping" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -54,7 +54,7 @@ services:
       redis:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:5000/api/v1/health"]
+      test: [ "CMD", "wget", "-qO-", "http://localhost:5000/api/v1/health" ]
       interval: 15s
       timeout: 5s
       retries: 5
@@ -75,13 +75,25 @@ services:
       backend:
         condition: service_healthy
 
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    ports:
+      - "9000:9000" # API port (only expose to host during dev; drop this in production, keep internal-only)
+      - "9001:9001" # Web console
+    volumes:
+      - minio-data:/data
+    networks: [ tmp-net ]
   # ── Nginx Proxy (placeholder — configured fully in deployment phase) ──────────
   # nginx-proxy:
   #   image: nginx:alpine
   #   container_name: tmp_nginx_proxy
   #   ...  (will be wired in the final deployment phase)
 
-# ── Networks ──────────────────────────────────────────────────────────────────
+  # ── Networks ──────────────────────────────────────────────────────────────────
 networks:
   tmp-net:
     driver: bridge
@@ -90,3 +102,4 @@ networks:
 volumes:
   mongo-data:
   redis-data:
+  minio-data:

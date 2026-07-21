@@ -30,7 +30,7 @@ export default function Navbar() {
             <span className="text-white font-bold text-sm">T</span>
           </div>
           <span className="font-semibold text-base hidden sm:block">
-            TMP <span className="text-[var(--color-text-muted)] font-normal">· CSM</span>
+            T&P <span className="text-[var(--color-text-muted)] font-normal">· CSM</span>
           </span>
         </Link>
 

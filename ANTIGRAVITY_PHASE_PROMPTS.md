@@ -1037,7 +1037,195 @@ Do NOT build events, the flexible content modules, or Connect Sphere yet — tho
 this phase strictly to Announcements, but DO leave the Socket.io core (`sockets/index.js`) general
 enough that Phase 10 can add a second namespace onto the SAME `io` instance without refactoring.
 ```
+ROLE: You are revising file storage in "TNP — CSM Department Web Platform". MinIO is already
+running as a Docker service and a bucket named `tnp-uploads` already exists with a public-read
+policy and a scoped access key already generated. This prompt wires MinIO into the actual backend
+code and migrates every upload endpoint built across earlier phases (Phase 2's profile photo +
+achievements, Phase 4's hero image, Phase 5's announcement attachments, Phase 10's chat
+attachments, Phase 8's alumni profile photo) away from local disk storage and onto MinIO. Google
+Drive integration for EVENT CERTIFICATES (Phase 6) is explicitly OUT OF SCOPE for this prompt —
+leave that exactly as it is, do not touch it.
 
+ALREADY DONE (do not repeat these steps, just confirm they're correctly reflected in the codebase):
+- MinIO container running as a `minio` service in `docker-compose.yml`, image `minio/minio:latest`,
+  with a named volume for `/data`, on the `tmp-net` network, using `MINIO_ROOT_USER`/
+  `MINIO_ROOT_PASSWORD` env vars.
+- Bucket `tnp-uploads` created with a public-read (`download`) anonymous access policy.
+- A scoped (non-root) access key pair generated for backend use.
+- These env vars already exist in `.env`:
+  `MINIO_ENDPOINT=http://minio:9000`
+  `MINIO_ACCESS_KEY=<already set>`
+  `MINIO_SECRET_KEY=<already set>`
+  `MINIO_BUCKET=tnp-uploads`
+  `MINIO_PUBLIC_URL=http://localhost:9000`
+- `@aws-sdk/client-s3` already installed as a backend dependency.
+
+Add all five of these MINIO_* variables to `.env.example` too (with placeholder values, not real
+secrets) if they aren't already there, so the project stays deployable from a clean checkout.
+
+YOUR TASK: Build the shared storage config/service layer, define a consistent folder-key
+convention across every feature, and REWRITE every existing upload endpoint to use it instead of
+local disk. Keep `upload.middleware.js`'s multer memory-storage + MIME/size-validation exactly as
+it is (that layer is still correct and needed — only the final "where does the validated buffer
+get written to" step changes).
+
+FOLDER-KEY CONVENTION — use exactly this structure inside the bucket, and centralize it so it's
+never hand-typed differently in different files:
+
+  profile-photos/{userId}.{ext}
+  profile-achievements/{userId}/{achievementEntryId}-{originalFileName}
+  department/hero-image.{ext}
+  faculty-links/{facultyLinkId}.{ext}          (only if faculty links ever get photos — skip if not applicable per current schema)
+  announcements/{announcementId}/{originalFileName}
+  chat-attachments/{spaceId}/{messageId}-{originalFileName}
+  alumni-photos/{alumniRepoId}.{ext}
+  achievements-media/{achievementId}/{originalFileName}   (Phase 9's Department Achievements module — distinct from profile-achievements above, do not conflate the two)
+  resume-guide/{resumeGuideEntryId}/{originalFileName}    (for any file-type content blocks in Phase 7's Resume Guide module, if used)
+
+BACKEND — build/change exactly this:
+
+1. `backend/src/config/s3.js` (create if not already present, otherwise confirm it matches this
+   exactly):
+```js
+   const { S3Client } = require('@aws-sdk/client-s3');
+
+   const s3Client = new S3Client({
+     endpoint: process.env.MINIO_ENDPOINT,
+     region: 'us-east-1',
+     credentials: {
+       accessKeyId: process.env.MINIO_ACCESS_KEY,
+       secretAccessKey: process.env.MINIO_SECRET_KEY,
+     },
+     forcePathStyle: true,
+   });
+
+   module.exports = s3Client;
+```
+   Add this to `backend/src/config/env.js`'s required-vars validation list: `MINIO_ENDPOINT`,
+   `MINIO_ACCESS_KEY`, `MINIO_SECRET_KEY`, `MINIO_BUCKET`, `MINIO_PUBLIC_URL` — the app should
+   fail fast at boot if any are missing, same pattern already used for every other required env
+   var since Phase 0.
+
+2. `backend/src/services/storage.service.js` — the SINGLE shared module every upload endpoint in
+   the app calls from now on:
+```js
+   const { PutObjectCommand, DeleteObjectCommand } = require('@aws-sdk/client-s3');
+   const s3Client = require('../config/s3');
+
+   async function uploadFile({ buffer, mimeType, key }) {
+     await s3Client.send(new PutObjectCommand({
+       Bucket: process.env.MINIO_BUCKET,
+       Key: key,
+       Body: buffer,
+       ContentType: mimeType,
+     }));
+     return `${process.env.MINIO_PUBLIC_URL}/${process.env.MINIO_BUCKET}/${key}`;
+   }
+
+   async function deleteFile({ key }) {
+     await s3Client.send(new DeleteObjectCommand({
+       Bucket: process.env.MINIO_BUCKET,
+       Key: key,
+     }));
+   }
+
+   module.exports = { uploadFile, deleteFile };
+```
+   Also export a small helper in the SAME file (or a sibling `utils/storageKeys.js` — your call,
+   just keep it in one place) that builds keys per the folder-key convention above, e.g.
+   `buildProfilePhotoKey(userId, ext)`, `buildAchievementKey(achievementId, fileName)`, etc. — one
+   function per folder prefix listed above. Every controller below must use these helper functions
+   to construct keys, never hand-concatenate a key string inline in a controller — this keeps the
+   folder convention enforced in exactly one place.
+
+3. Go through EVERY existing upload endpoint built in earlier phases and replace its local-disk
+   write (`fs.writeFile` / multer diskStorage / anything writing into `backend/uploads/...`) with a
+   call to `storage.service.js`'s `uploadFile(...)`, using the matching key-builder helper. Update
+   each of these specifically:
+   - `POST /student/profile/upload-photo` (Phase 2) → `profile-photos/` key, delete the OLD photo
+     via `deleteFile()` first if the user already had one (look up the existing `profileImage` URL,
+     derive its key, delete it) so orphaned old files don't accumulate in the bucket every time a
+     student changes their photo.
+   - `POST /student/profile/upload-achievement` (Phase 2) → `profile-achievements/` key.
+   - `POST /admin/department-info/upload-hero-image` (Phase 4) → `department/hero-image.{ext}`
+     (note this is a FIXED key, not per-upload-unique, since it's a singleton — uploading a new
+     hero image should overwrite the old object at the same key, which `PutObjectCommand` does
+     automatically; no explicit delete needed here since the key never changes).
+   - Announcement attachment uploads (Phase 5, inside `announcements.admin.controller.js`) →
+     `announcements/{announcementId}/` key — note the announcement doc needs to exist (or you need
+     to generate its ID up front, e.g. via `new mongoose.Types.ObjectId()` before insert) so the
+     folder path is known at upload time; handle whichever ordering fits how that controller
+     currently creates the announcement + processes attachments.
+   - Chat attachment uploads (Phase 10, inside `chat.controller.js`'s message-send handler) →
+     `chat-attachments/{spaceId}/{messageId}-` key, same ID-ordering consideration as above.
+   - Alumni profile photo upload (Phase 8, `alumniRepos.admin.controller.js`) → `alumni-photos/`
+     key.
+   - Department Achievements media uploads (Phase 9, `achievements.admin.controller.js`) →
+     `achievements-media/{achievementId}/` key.
+   - Any file-type `ContentBlockSchema` entries where admin uploads a file directly rather than
+     pasting a URL (Phase 7's Skill Roadmap/Certifications/Learning Resources/Resume Guide editors,
+     if your `ContentBlockEditor.jsx` supports direct upload for `type: 'file'`/`'pdf'` blocks) →
+     route those through this same service too, using a `content-blocks/{moduleName}/{docId}/` key
+     pattern consistent with the convention above.
+   In every case, the value STORED in MongoDB (on `User.profileImage`, `Achievement.media[].value`,
+   `Announcement.attachments[].url`, etc.) is the full public URL string returned by `uploadFile()`
+   — exactly as it already worked for local disk, just pointing at MinIO now instead.
+
+4. Delete `backend/uploads/` local-storage-serving code from `app.js` (the `express.static('/uploads', ...)`
+   mount added back in Phase 2) since nothing writes there anymore — but do NOT delete the actual
+   `backend/uploads/` directory or its contents yet; leave a code comment noting any pre-existing
+   local files from before this migration are now orphaned and can be manually cleaned up once
+   confirmed unused (there is no automated migration of already-uploaded local files in this pass —
+   flag this clearly rather than silently losing data if any real uploads exist in that folder).
+
+5. Update `backend/src/middleware/upload.middleware.js` if it currently assumes a disk-storage
+   destination anywhere — it should be memory-storage only (`multer.memoryStorage()`), passing the
+   in-memory buffer straight to whichever controller calls `storage.service.js`. Confirm this is
+   already the case (Phase 2 built it this way) and fix it if it drifted.
+
+6. Add `.dockerignore`/`.gitignore` entries for `backend/uploads/` if not already present, since
+   it's no longer an active storage path.
+
+FRONTEND — build/change exactly this:
+
+1. `frontend/src/components/shared/FileUploader.jsx` (already exists since Phase 2) — confirm it
+   requires NO changes: it already just POSTs to whatever endpoint URL is passed as a prop and
+   displays the returned URL. Since the backend's response shape (`{success:true, data:{url}}` or
+   similar) is unchanged by this migration — only WHERE the file physically lands changed — this
+   component should keep working with zero edits. Explicitly verify this rather than assuming it.
+
+2. Nothing else on the frontend should need to change — every `<img src={...}>` /
+   download-link usage across Profile, Home (hero image), Announcements, Chat, Alumni Repos,
+   Achievements already just renders whatever URL string the backend gives it, and that URL is
+   now a MinIO URL instead of a local `/uploads/...` path, transparently.
+
+VERIFY THIS MIGRATION YOURSELF BEFORE CONSIDERING IT DONE:
+1. Upload a new profile photo as a test student — confirm the file appears in the bucket under
+   `profile-photos/` (check via `docker run --rm -it --network tnpwebsite_tmp-net -v
+   mc-config:/root/.mc minio/mc ls local/tnp-uploads/profile-photos/`), and confirm the URL
+   returned in the API response loads directly in a browser tab with no login required.
+2. Upload a SECOND profile photo for the SAME student — confirm the old object at that user's key
+   was deleted (bucket doesn't accumulate orphaned old photos) and the new one is live.
+3. As admin, upload a new department hero image — confirm it lands at the fixed
+   `department/hero-image.{ext}` key and the public Home page immediately reflects the new image.
+4. Upload an announcement attachment, a chat attachment, an alumni profile photo, and a Department
+   Achievement media file — confirm each lands under its correct folder prefix per the convention
+   above (spot-check via `mc ls` on each prefix), and confirm each renders/downloads correctly on
+   its respective student-facing page.
+5. Confirm Phase 6's Google Drive event-certificate flow is completely untouched and still works
+   exactly as before — this migration must not have accidentally rerouted certificate uploads to
+   MinIO.
+6. Restart the backend container (`docker compose restart backend`) and confirm every
+   already-uploaded file's URL still loads correctly afterward (proving persistence survives a
+   container restart, since files live in MinIO's own volume, not the backend container's
+   filesystem).
+7. Grep the backend codebase for any remaining `fs.writeFile`/disk-storage references tied to
+   uploads — confirm none remain outside of temporary/memory buffer handling within
+   `upload.middleware.js` itself.
+
+Once verified, the storage layer is fully MinIO-backed and ready to swap to real AWS S3/Cloudflare
+R2 later by changing only the five `MINIO_*` env vars (and dropping `forcePathStyle` for real AWS)
+— no further code changes required at that point.
 ---
 
 ## PHASE 6 PROMPT — Events Module + Zoom + Google Drive Integration

@@ -15,6 +15,9 @@ frontend/build/
 # Docker
 .dockerignore
 
+# Local uploads (all uploads should go to MinIO — this folder should be empty in production)
+backend/uploads/
+
 # OS
 .DS_Store
 Thumbs.db

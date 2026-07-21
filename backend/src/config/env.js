@@ -17,6 +17,12 @@ const REQUIRED_VARS = [
   // Phase 1+ — auth
   'JWT_SECRET',
   'JWT_REFRESH_SECRET',
+  // Phase 5+ — MinIO object storage
+  'MINIO_ENDPOINT',
+  'MINIO_ACCESS_KEY',
+  'MINIO_SECRET_KEY',
+  'MINIO_BUCKET',
+  'MINIO_PUBLIC_URL',
 ];
 
 function validateEnv() {

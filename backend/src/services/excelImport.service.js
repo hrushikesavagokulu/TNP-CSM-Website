@@ -126,4 +126,73 @@ async function parseStudentNominalSheet(fileBuffer, adminId) {
   return { validRows, errors };
 }
 
-module.exports = { parseStudentNominalSheet };
+/**
+ * Parses an Excel/CSV sheet for batch member bulk-import.
+ * Expects columns: 'rollNo' and 'email' (case-insensitive headers, same patterns as above).
+ * Does NOT perform DB checks — those happen in the batch controller's shared helper
+ * so that year-mismatch and duplicate errors can be collected per-row without blocking others.
+ *
+ * @param {Buffer} fileBuffer - Spreadsheet file buffer from multer
+ * @returns {{ validRows: Array<{rollNo, email}>, errors: Array<{row, reason}> }}
+ */
+function parseBatchMembersSheet(fileBuffer) {
+  const workbook = XLSX.read(fileBuffer, { type: 'buffer' });
+  const sheetName = workbook.SheetNames[0];
+  const sheet = workbook.Sheets[sheetName];
+  const rawRows = XLSX.utils.sheet_to_json(sheet);
+
+  const validRows = [];
+  const errors    = [];
+
+  for (let i = 0; i < rawRows.length; i++) {
+    const rowNum = i + 2;
+    const rawRow = rawRows[i];
+
+    let rollNoKey = null;
+    let emailKey  = null;
+
+    for (const key of Object.keys(rawRow)) {
+      const lowerKey = key.toLowerCase().trim();
+      if (lowerKey === 'rollno' || lowerKey === 'roll no' || lowerKey === 'roll_no') {
+        rollNoKey = key;
+      } else if (lowerKey === 'email' || lowerKey === 'gmail' || lowerKey === 'email address') {
+        emailKey = key;
+      }
+    }
+
+    if (!rollNoKey && !emailKey) {
+      errors.push({ row: rowNum, reason: "Missing columns. Row must have 'rollNo' and/or 'email' headers." });
+      continue;
+    }
+
+    const rollNo = rollNoKey ? String(rawRow[rollNoKey] || '').trim().toUpperCase() : '';
+    const email  = emailKey  ? String(rawRow[emailKey]  || '').trim().toLowerCase() : '';
+
+    if (!rollNo && !email) {
+      errors.push({ row: rowNum, reason: 'Both rollNo and email are empty — skipping row.' });
+      continue;
+    }
+
+    if (email && !email.includes('@')) {
+      errors.push({ row: rowNum, reason: `Invalid email format: ${email}` });
+      continue;
+    }
+
+    // Check for duplicates within this sheet run
+    const dupInBatch = validRows.some(
+      (r) => (rollNo && r.rollNo === rollNo) || (email && r.email === email)
+    );
+    if (dupInBatch) {
+      errors.push({ row: rowNum, reason: `Duplicate entry in this sheet (rollNo: ${rollNo || '-'} / email: ${email || '-'}).` });
+      continue;
+    }
+
+    validRows.push({ rollNo, email });
+  }
+
+  return { validRows, errors };
+}
+
+module.exports = { parseStudentNominalSheet, parseBatchMembersSheet };
+
+

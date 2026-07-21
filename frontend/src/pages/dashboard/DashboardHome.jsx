@@ -3,17 +3,19 @@ import { useAuth } from '../../context/AuthContext';
 import ProgressRing from '../../components/shared/ProgressRing';
 import SearchStudents from '../../components/shared/SearchStudents';
 
+// Tiles: set `path` to enable navigation; omit or set to null for "Coming Soon" stubs
 const TILES = [
-  { name: 'Announcements', count: 'Coming Soon', icon: '🔔', desc: 'Department notices, placement news and notifications' },
-  { name: 'Events', count: 'Coming Soon', icon: '📅', desc: 'Register for mock interviews, coding contests, and upload event certificates (NPTEL, Coursera, tech certs)' },
-  { name: 'Semester-wise Skill Roadmap', count: 'Coming Soon', icon: '🗺️', desc: 'Track semester-wise roadmap goals and check academic progress' },
-  { name: 'Semester Certifications & Achievements', count: 'Coming Soon', icon: '🏅', desc: 'Manage and view your semester-wise certifications and achievements' },
-  { name: 'Company Profiles', count: 'Coming Soon', icon: '🏢', desc: 'Browse recruiting partners and job descriptions' },
-  { name: 'Alumni Repository', count: 'Coming Soon', icon: '🎓', desc: 'Browse interview experiences and projects' },
-  { name: 'Learning Resources', count: 'Coming Soon', icon: '📚', desc: 'Curated study materials, lab guides and notes' },
-  { name: 'Resume Guide', count: 'Coming Soon', icon: '📄', desc: 'Build and format professional resumes' },
-  { name: 'Connect Sphere', count: 'Coming Soon', icon: '💬', desc: 'Chat and coordinate with fellow classmates' },
+  { name: 'Announcements', count: 'Live', icon: '🔔', desc: 'Department notices, placement news and notifications', path: '/dashboard/announcements' },
+  { name: 'Events', count: 'Coming Soon', icon: '📅', desc: 'Register for mock interviews, coding contests, and upload event certificates (NPTEL, Coursera, tech certs)', path: null },
+  { name: 'Semester-wise Skill Roadmap', count: 'Coming Soon', icon: '🗺️', desc: 'Track semester-wise roadmap goals and check academic progress', path: null },
+  { name: 'Semester Certifications & Achievements', count: 'Coming Soon', icon: '🏅', desc: 'Manage and view your semester-wise certifications and achievements', path: null },
+  { name: 'Company Profiles', count: 'Coming Soon', icon: '🏢', desc: 'Browse recruiting partners and job descriptions', path: null },
+  { name: 'Alumni Repository', count: 'Coming Soon', icon: '🎓', desc: 'Browse interview experiences and projects', path: null },
+  { name: 'Learning Resources', count: 'Coming Soon', icon: '📚', desc: 'Curated study materials, lab guides and notes', path: null },
+  { name: 'Resume Guide', count: 'Coming Soon', icon: '📄', desc: 'Build and format professional resumes', path: null },
+  { name: 'Connect Sphere', count: 'Coming Soon', icon: '💬', desc: 'Chat and coordinate with fellow classmates', path: null },
 ];
+
 
 export default function DashboardHome() {
   const { user } = useAuth();
@@ -79,25 +81,46 @@ export default function DashboardHome() {
         <h3 className="text-sm font-semibold text-[var(--color-text-primary)] uppercase tracking-wider">Department Portal Modules</h3>
         
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {TILES.map((tile) => (
-            <div
-              key={tile.name}
-              className="glass-card p-6 flex flex-col gap-2 relative overflow-hidden opacity-85 hover:opacity-100 hover:-translate-y-0.5 hover:shadow-md transition-all duration-200 group"
-            >
-              {/* Coming soon ribbon */}
-              <div className="absolute top-3 right-3 text-[9px] font-extrabold uppercase tracking-widest px-2 py-0.5 rounded bg-[var(--color-border)] text-[var(--color-text-muted)] group-hover:bg-[var(--color-accent-subtle)] group-hover:text-[var(--color-accent)] transition-colors">
-                {tile.count}
+          {TILES.map((tile) => {
+            const isLive = !!tile.path;
+            return (
+              <div
+                key={tile.name}
+                onClick={() => isLive && navigate(tile.path)}
+                className={`glass-card p-6 flex flex-col gap-2 relative overflow-hidden transition-all duration-200 group
+                  ${isLive
+                    ? 'cursor-pointer hover:-translate-y-1 hover:shadow-xl hover:border-[var(--color-accent)]'
+                    : 'opacity-75 hover:opacity-90 hover:-translate-y-0.5 hover:shadow-md cursor-default'
+                  }`}
+              >
+                {/* Status badge */}
+                <div className={`absolute top-3 right-3 text-[9px] font-extrabold uppercase tracking-widest px-2 py-0.5 rounded transition-colors
+                  ${isLive
+                    ? 'bg-[var(--color-accent-subtle)] text-[var(--color-accent)]'
+                    : 'bg-[var(--color-border)] text-[var(--color-text-muted)] group-hover:bg-[var(--color-accent-subtle)] group-hover:text-[var(--color-accent)]'
+                  }`}>
+                  {tile.count}
+                </div>
+
+                {/* Icon */}
+                <div className="text-3xl select-none mb-1">{tile.icon}</div>
+
+                {/* Name & description */}
+                <h4 className={`text-sm font-bold ${isLive ? 'text-[var(--color-accent)]' : 'text-[var(--color-text-primary)]'}`}>
+                  {tile.name}
+                </h4>
+                <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">{tile.desc}</p>
+
+                {isLive && (
+                  <span className="text-[10px] font-bold text-[var(--color-accent)] mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    Open →
+                  </span>
+                )}
               </div>
-
-              {/* Icon */}
-              <div className="text-3xl select-none mb-1">{tile.icon}</div>
-
-              {/* Name & description */}
-              <h4 className="text-sm font-bold text-[var(--color-text-primary)]">{tile.name}</h4>
-              <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">{tile.desc}</p>
-            </div>
-          ))}
+            );
+          })}
         </div>
+
       </div>
 
     </div>

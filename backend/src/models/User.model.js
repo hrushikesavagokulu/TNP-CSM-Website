@@ -54,11 +54,11 @@ const userSchema = new mongoose.Schema(
     // ── Academic ───────────────────────────────────────────────────────────
     branch: { type: String, trim: true },
     year:   { type: Number, enum: [1, 2, 3, 4] },
-    batchType: {
-      type: String,
-      enum: ['smart', 'tap', 'itca', 'nonItca', null],
-      default: null,
-    },
+    // batches: ObjectId refs to Batch docs (year 3/4 only; always [] for year 1/2).
+    // A student can belong to multiple batches simultaneously.
+    batches: [
+      { type: mongoose.Schema.Types.ObjectId, ref: 'Batch' },
+    ],
 
     // ── Role / access ──────────────────────────────────────────────────────
     role:         { type: String, enum: ['student', 'admin'], default: 'student' },
@@ -96,7 +96,8 @@ const userSchema = new mongoose.Schema(
 );
 
 // ── Indexes ──────────────────────────────────────────────────────────────────
-userSchema.index({ year: 1, batchType: 1 }); // compound — used for batch filtering
+userSchema.index({ year: 1 });     // year-level announcement queries
+userSchema.index({ batches: 1 }); // batch membership queries
 
 // ── Model ────────────────────────────────────────────────────────────────────
 const User = mongoose.model('User', userSchema);

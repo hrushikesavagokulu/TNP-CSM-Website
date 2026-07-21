@@ -17,12 +17,15 @@ import AdminLogin    from './pages/public/AdminLogin';
 import Home          from './pages/public/Home';
 import DashboardHome from './pages/dashboard/DashboardHome';
 import Profile       from './pages/dashboard/Profile';
+import StudentAnnouncements from './pages/dashboard/StudentAnnouncements';
 
 // Admin Pages
 import AdminHome     from './pages/admin/AdminHome';
 import ManageStudents from './pages/admin/ManageStudents';
 import ManageAdmins   from './pages/admin/ManageAdmins';
 import ManageDepartmentInfo from './pages/admin/ManageDepartmentInfo';
+import ManageBatches       from './pages/admin/ManageBatches';
+import ManageAnnouncements from './pages/admin/ManageAnnouncements';
 
 // ── Shared Public Layout (displays main Navbar) ──────────────────────────────
 function PublicLayout() {
@@ -56,6 +59,7 @@ export default function App() {
             <Route index element={<DashboardHome />} />
             <Route path="profile" element={<Profile />} />
             <Route path="profile/:rollNo" element={<Profile />} />
+            <Route path="announcements" element={<StudentAnnouncements />} />
             
             {/* Catch-all stubs for features not yet built */}
             <Route path="*" element={
@@ -74,6 +78,8 @@ export default function App() {
             <Route path="students" element={<ManageStudents />} />
             <Route path="admins" element={<ManageAdmins />} />
             <Route path="department-info" element={<ManageDepartmentInfo />} />
+            <Route path="batches" element={<ManageBatches />} />
+            <Route path="announcements" element={<ManageAnnouncements />} />
 
             {/* Catch-all stubs for future admin features */}
             <Route path="*" element={

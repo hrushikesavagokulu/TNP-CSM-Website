@@ -14,12 +14,17 @@ const authenticate  = require('../middleware/auth.middleware');
 const { requireRole } = require('../middleware/role.middleware');
 
 // Admin sub-routers
-const adminStudents = require('./admin/students.routes');
-const adminAdmins   = require('./admin/admins.routes');
-const adminDeptInfo = require('./admin/departmentInfo.routes');
+const adminStudents      = require('./admin/students.routes');
+const adminAdmins        = require('./admin/admins.routes');
+const adminDeptInfo      = require('./admin/departmentInfo.routes');
+const adminBatches       = require('./admin/batches.routes');
+const adminAnnouncements = require('./admin/announcements.routes');
 
 // Public sub-router
 const publicRoutes  = require('./public.routes');
+
+// Student announcement sub-router
+const studentAnnouncements = require('./student/announcement.routes');
 
 const router = express.Router();
 
@@ -36,6 +41,11 @@ router.use('/public', publicRoutes);
 router.use('/admin/students',        authenticate, requireRole('admin'), adminStudents);
 router.use('/admin/admins',          authenticate, requireRole('admin'), adminAdmins);
 router.use('/admin/department-info', authenticate, requireRole('admin'), adminDeptInfo);
+router.use('/admin/batches',         authenticate, requireRole('admin'), adminBatches);
+router.use('/admin/announcements',   authenticate, requireRole('admin'), adminAnnouncements);
+
+// Mount student announcement routes at /api/v1/student (auth applied inside the router)
+router.use('/student', studentAnnouncements);
 
 // Mount shared skills catalogue lookup (requires authentication)
 router.get('/skills-catalogue', authenticate, profileCtrl.getSkillsCatalogue);

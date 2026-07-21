@@ -1,0 +1,6 @@
+Added `local` successfully.
+Access Key: Y99ZTYU3RAJU3U097MK8
+Secret Key: pgaSvGyos4r0oKZi7OKXVed6UiIN9RdecQapnKqw
+Expiration: NONE
+Name:
+Description:

@@ -1,12 +1,10 @@
 'use strict';
 
-const fs             = require('fs');
-const path           = require('path');
-const crypto         = require('crypto');
 const bcrypt         = require('bcryptjs');
 const User           = require('../models/User.model');
 const SkillsCatalogue = require('../models/SkillsCatalogue.model');
 const otpService     = require('../services/otp.service');
+const storage        = require('../services/storage.service');
 const { sendResponse } = require('../utils/apiResponse');
 const asyncHandler   = require('../utils/asyncHandler');
 
@@ -200,28 +198,7 @@ const getSkillsCatalogue = asyncHandler(async (req, res) => {
   });
 });
 
-// ── File Helpers and Upload Enpoints ──────────────────────────────────────────
-const saveUploadedFile = (file, folderName) => {
-  // Determine absolute path to root directory
-  const rootDir = path.join(__dirname, '..', '..');
-  const uploadDir = path.join(rootDir, 'uploads', folderName);
-
-  // Ensure directories exist
-  if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir, { recursive: true });
-  }
-
-  // Create unique filename
-  const ext = path.extname(file.originalname);
-  const randomName = crypto.randomBytes(16).toString('hex') + ext;
-  const destPath = path.join(uploadDir, randomName);
-
-  // Write file buffer
-  fs.writeFileSync(destPath, file.buffer);
-
-  // Return public path url
-  return `/uploads/${folderName}/${randomName}`;
-};
+// ── Upload endpoints (MinIO-backed) ──────────────────────────────────────────
 
 const uploadPhoto = asyncHandler(async (req, res) => {
   if (!req.file) {
@@ -232,7 +209,21 @@ const uploadPhoto = asyncHandler(async (req, res) => {
     });
   }
 
-  const fileUrl = saveUploadedFile(req.file, 'profile-photos');
+  const userId = req.user._id.toString();
+
+  // Delete old photo if one exists — same fixed key per user so the bucket never accumulates orphans
+  const existingUrl = req.user.profileImage;
+  const oldKey = storage.keyFromUrl(existingUrl);
+  if (oldKey) {
+    try { await storage.deleteFile({ key: oldKey }); } catch { /* ignore if old file missing */ }
+  }
+
+  const key    = storage.buildProfilePhotoKey(userId, req.file.originalname);
+  const fileUrl = await storage.uploadFile({
+    buffer:   req.file.buffer,
+    mimeType: req.file.mimetype,
+    key,
+  });
 
   return sendResponse(res, 200, {
     success: true,
@@ -250,7 +241,15 @@ const uploadAchievement = asyncHandler(async (req, res) => {
     });
   }
 
-  const fileUrl = saveUploadedFile(req.file, 'achievements');
+  const userId = req.user._id.toString();
+  // Use a timestamp as achievementEntryId so concurrent uploads from same user don't collide
+  const entryId = Date.now().toString();
+  const key     = storage.buildProfileAchievementKey(userId, entryId, req.file.originalname);
+  const fileUrl = await storage.uploadFile({
+    buffer:   req.file.buffer,
+    mimeType: req.file.mimetype,
+    key,
+  });
 
   return sendResponse(res, 200, {
     success: true,

@@ -14,46 +14,46 @@
   --color-border-subtle: #f1f5f9;
 
   --color-text-primary:  #0f172a;
-  --color-text-secondary:#475569;
-  --color-text-muted:    #94a3b8;
+  --color-text-secondary:#334155;
+  --color-text-muted:    #64748b;
   --color-text-inverse:  #ffffff;
 
-  --color-accent:        #5a6ef8;
-  --color-accent-hover:  #3d4eef;
-  --color-accent-subtle: rgba(90, 110, 248, 0.08);
-  --color-accent-border: rgba(90, 110, 248, 0.25);
+  --color-accent:        #6366f1; /* Vibrant Royal Indigo */
+  --color-accent-hover:  #4f46e5;
+  --color-accent-subtle: rgba(99, 102, 241, 0.08);
+  --color-accent-border: rgba(99, 102, 241, 0.25);
 
-  --color-success:       #10b981;
-  --color-success-bg:    rgba(16, 185, 129, 0.08);
-  --color-warning:       #f59e0b;
-  --color-warning-bg:    rgba(245, 158, 11, 0.08);
-  --color-error:         #ef4444;
-  --color-error-bg:      rgba(239, 68, 68, 0.08);
+  --color-success:       #059669;
+  --color-success-bg:    rgba(5, 150, 105, 0.08);
+  --color-warning:       #d97706;
+  --color-warning-bg:    rgba(217, 119, 6, 0.08);
+  --color-error:         #dc2626;
+  --color-error-bg:      rgba(220, 38, 38, 0.08);
 
-  --shadow-sm:           0 1px 2px rgba(0,0,0,0.06);
-  --shadow-md:           0 4px 12px rgba(0,0,0,0.08);
-  --shadow-lg:           0 8px 32px rgba(0,0,0,0.10);
-  --shadow-xl:           0 16px 48px rgba(0,0,0,0.12);
+  --shadow-sm:           0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md:           0 4px 14px rgba(0,0,0,0.06);
+  --shadow-lg:           0 8px 30px rgba(0,0,0,0.08);
+  --shadow-xl:           0 16px 40px rgba(0,0,0,0.10);
 }
 
 /* ── Dark theme ──────────────────────────────────────────────────────────── */
 [data-theme="dark"] {
-  --color-bg:            #0f172a;
-  --color-bg-secondary:  #1e293b;
-  --color-surface:       #1e293b;
-  --color-surface-raised:#263347;
-  --color-border:        #334155;
-  --color-border-subtle: #1e293b;
+  --color-bg:            #080c16; /* Deep Cosmic Void */
+  --color-bg-secondary:  #0e1424;
+  --color-surface:       #121b2e; /* Luxury Midnight Blue Card Surface */
+  --color-surface-raised:#1a263f;
+  --color-border:        #1e293b;
+  --color-border-subtle: #0f172a;
 
-  --color-text-primary:  #f1f5f9;
-  --color-text-secondary:#94a3b8;
+  --color-text-primary:  #f8fafc;
+  --color-text-secondary:#cbd5e1;
   --color-text-muted:    #64748b;
-  --color-text-inverse:  #0f172a;
+  --color-text-inverse:  #080c16;
 
-  --color-accent:        #7b96fc;
-  --color-accent-hover:  #a4bcff;
-  --color-accent-subtle: rgba(123, 150, 252, 0.10);
-  --color-accent-border: rgba(123, 150, 252, 0.25);
+  --color-accent:        #818cf8; /* Electric Neon Indigo */
+  --color-accent-hover:  #a5b4fc;
+  --color-accent-subtle: rgba(129, 140, 248, 0.12);
+  --color-accent-border: rgba(129, 140, 248, 0.3);
 
   --color-success:       #34d399;
   --color-success-bg:    rgba(52, 211, 153, 0.10);
@@ -63,7 +63,7 @@
   --color-error-bg:      rgba(248, 113, 113, 0.10);
 
   --shadow-sm:           0 1px 2px rgba(0,0,0,0.30);
-  --shadow-md:           0 4px 12px rgba(0,0,0,0.40);
-  --shadow-lg:           0 8px 32px rgba(0,0,0,0.50);
-  --shadow-xl:           0 16px 48px rgba(0,0,0,0.60);
+  --shadow-md:           0 4px 16px rgba(0,0,0,0.40);
+  --shadow-lg:           0 8px 36px rgba(0,0,0,0.50);
+  --shadow-xl:           0 16px 48px rgba(0,0,0,0.65);
 }

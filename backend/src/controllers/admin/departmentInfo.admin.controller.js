@@ -1,30 +1,11 @@
 'use strict';
 
-const fs             = require('fs');
-const path           = require('path');
-const crypto         = require('crypto');
 const DepartmentInfo = require('../../models/DepartmentInfo.model');
 const FacultyLink    = require('../../models/FacultyLink.model');
 const SchemeLink     = require('../../models/SchemeLink.model');
+const storage        = require('../../services/storage.service');
 const { sendResponse } = require('../../utils/apiResponse');
 const asyncHandler   = require('../../utils/asyncHandler');
-
-// Helper to save file upload to disk under local directory
-const saveUploadedFile = (file, folderName) => {
-  const rootDir = path.join(__dirname, '..', '..', '..');
-  const uploadDir = path.join(rootDir, 'uploads', folderName);
-
-  if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir, { recursive: true });
-  }
-
-  const ext = path.extname(file.originalname);
-  const randomName = crypto.randomBytes(16).toString('hex') + ext;
-  const destPath = path.join(uploadDir, randomName);
-
-  fs.writeFileSync(destPath, file.buffer);
-  return `/uploads/${folderName}/${randomName}`;
-};
 
 // ── Department Info Singleton CRUD ───────────────────────────────────────────
 
@@ -71,7 +52,13 @@ const uploadHeroImage = asyncHandler(async (req, res) => {
     });
   }
 
-  const fileUrl = saveUploadedFile(req.file, 'department-hero');
+  // Fixed singleton key — PutObjectCommand overwrites automatically; no delete needed
+  const key    = storage.buildHeroImageKey(req.file.originalname);
+  const fileUrl = await storage.uploadFile({
+    buffer:   req.file.buffer,
+    mimeType: req.file.mimetype,
+    key,
+  });
   return sendResponse(res, 200, {
     success: true,
     data: { fileUrl },
@@ -294,7 +281,14 @@ const uploadFacultyPhoto = asyncHandler(async (req, res) => {
     });
   }
 
-  const fileUrl = saveUploadedFile(req.file, 'faculty-photos');
+  // facultyLinkId is optional — passed as ?facultyId= or falls back to a timestamp
+  const facultyId = req.query.facultyId || Date.now().toString();
+  const key       = storage.buildFacultyPhotoKey(facultyId, req.file.originalname);
+  const fileUrl   = await storage.uploadFile({
+    buffer:   req.file.buffer,
+    mimeType: req.file.mimetype,
+    key,
+  });
   return sendResponse(res, 200, {
     success: true,
     data: { fileUrl },
