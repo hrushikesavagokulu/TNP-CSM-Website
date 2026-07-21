@@ -38,6 +38,70 @@ function buildUserEligibilityQuery(isGeneral, targetYears, targetBatches) {
   return { role: 'student', isActive: true, $or: orClauses };
 }
 
+const { ANNOUNCEMENT_DEFAULT_EXPIRY_DAYS } = require('../../config/constants');
+
+function calculateAnnouncementExpiry(postedAt, expiryMode, customExpiryDays, customExpiryDate) {
+  const baseDate = postedAt ? new Date(postedAt) : new Date();
+
+  if (expiryMode === 'never') {
+    return { neverExpires: true, expiresAt: null, expiryMode: 'never' };
+  }
+
+  if (expiryMode === 'custom') {
+    let expiresAt = null;
+
+    if (customExpiryDays !== undefined && customExpiryDays !== null && customExpiryDays !== '') {
+      const days = parseInt(customExpiryDays, 10);
+      if (isNaN(days) || days <= 0) {
+        const err = new Error('customExpiryDays must be a positive number.');
+        err.statusCode = 400;
+        throw err;
+      }
+      if (days > ANNOUNCEMENT_DEFAULT_EXPIRY_DAYS) {
+        const err = new Error(`Custom expiry days cannot exceed ${ANNOUNCEMENT_DEFAULT_EXPIRY_DAYS} days. Use "Never expires" for longer durations.`);
+        err.statusCode = 400;
+        throw err;
+      }
+      expiresAt = new Date(baseDate.getTime() + days * 24 * 60 * 60 * 1000);
+
+    } else if (customExpiryDate) {
+      const targetDate = new Date(customExpiryDate);
+      if (isNaN(targetDate.getTime())) {
+        const err = new Error('Invalid customExpiryDate provided.');
+        err.statusCode = 400;
+        throw err;
+      }
+      const maxExpiry = new Date(baseDate.getTime() + ANNOUNCEMENT_DEFAULT_EXPIRY_DAYS * 24 * 60 * 60 * 1000);
+      if (targetDate > maxExpiry) {
+        const err = new Error(`Custom expiry date cannot exceed ${ANNOUNCEMENT_DEFAULT_EXPIRY_DAYS} days from posting date. Use "Never expires" for longer durations.`);
+        err.statusCode = 400;
+        throw err;
+      }
+      expiresAt = targetDate;
+    } else {
+      const err = new Error('Custom expiry mode requires customExpiryDays or customExpiryDate.');
+      err.statusCode = 400;
+      throw err;
+    }
+
+    return { neverExpires: false, expiresAt, expiryMode: 'custom' };
+  }
+
+  // Default mode: 250 days from postedAt
+  const expiresAt = new Date(baseDate.getTime() + ANNOUNCEMENT_DEFAULT_EXPIRY_DAYS * 24 * 60 * 60 * 1000);
+  return { neverExpires: false, expiresAt, expiryMode: 'default' };
+}
+
+function annotateAnnouncement(item) {
+  const now = new Date();
+  if (item.neverExpires || !item.expiresAt) {
+    return { ...item, remainingDays: null, expiryMode: 'never' };
+  }
+  const diffMs = new Date(item.expiresAt).getTime() - now.getTime();
+  const remainingDays = Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
+  return { ...item, remainingDays };
+}
+
 // ── GET /admin/announcements ──────────────────────────────────────────────────
 const getAnnouncements = asyncHandler(async (req, res) => {
   const page  = parseInt(req.query.page,  10) || 1;
@@ -55,10 +119,12 @@ const getAnnouncements = asyncHandler(async (req, res) => {
     Announcement.countDocuments(),
   ]);
 
+  const annotated = announcements.map(annotateAnnouncement);
+
   return sendResponse(res, 200, {
     success: true,
     data: {
-      announcements,
+      announcements: annotated,
       pagination: { page, limit, total, pages: Math.ceil(total / limit) },
     },
     message: 'Announcements retrieved.',
@@ -74,6 +140,9 @@ const createAnnouncement = asyncHandler(async (req, res) => {
     isGeneral   = false,
     targetYears = [],
     targetBatches = [],
+    expiryMode = 'default',
+    customExpiryDays,
+    customExpiryDate,
   } = req.body;
 
   if (!title || !body) {
@@ -94,6 +163,18 @@ const createAnnouncement = asyncHandler(async (req, res) => {
     });
   }
 
+  const postedAt = new Date();
+  let expiryConfig;
+  try {
+    expiryConfig = calculateAnnouncementExpiry(postedAt, expiryMode, customExpiryDays, customExpiryDate);
+  } catch (err) {
+    return sendResponse(res, err.statusCode || 400, {
+      success: false,
+      message: err.message,
+      error: 'INVALID_EXPIRY_CONFIG',
+    });
+  }
+
   const announcement = await Announcement.create({
     title: title.trim(),
     body:  body.trim(),
@@ -102,7 +183,9 @@ const createAnnouncement = asyncHandler(async (req, res) => {
     targetYears:   Array.isArray(targetYears)   ? targetYears   : [],
     targetBatches: Array.isArray(targetBatches) ? targetBatches : [],
     postedBy: req.user._id,
-    postedAt: new Date(),
+    postedAt,
+    expiresAt:    expiryConfig.expiresAt,
+    neverExpires: expiryConfig.neverExpires,
   });
 
   // ── Socket.io push ──────────────────────────────────────────────────────────
@@ -129,9 +212,11 @@ const createAnnouncement = asyncHandler(async (req, res) => {
     console.error('[announcements] Socket push error:', socketErr.message);
   }
 
+  const annotated = annotateAnnouncement(announcement.toObject());
+
   return sendResponse(res, 201, {
     success: true,
-    data: announcement,
+    data: annotated,
     message: 'Announcement created and pushed to eligible students.',
   });
 });
@@ -146,7 +231,15 @@ const updateAnnouncement = asyncHandler(async (req, res) => {
     isGeneral,
     targetYears,
     targetBatches,
+    expiryMode,
+    customExpiryDays,
+    customExpiryDate,
   } = req.body;
+
+  const existing = await Announcement.findById(id);
+  if (!existing) {
+    return sendResponse(res, 404, { success: false, message: 'Announcement not found.', error: 'NOT_FOUND' });
+  }
 
   const updates = {};
   if (title        !== undefined) updates.title        = title.trim();
@@ -155,6 +248,20 @@ const updateAnnouncement = asyncHandler(async (req, res) => {
   if (isGeneral    !== undefined) updates.isGeneral    = !!isGeneral;
   if (targetYears  !== undefined) updates.targetYears  = targetYears;
   if (targetBatches !== undefined) updates.targetBatches = targetBatches;
+
+  if (expiryMode !== undefined) {
+    try {
+      const expiryConfig = calculateAnnouncementExpiry(existing.postedAt, expiryMode, customExpiryDays, customExpiryDate);
+      updates.expiresAt    = expiryConfig.expiresAt;
+      updates.neverExpires = expiryConfig.neverExpires;
+    } catch (err) {
+      return sendResponse(res, err.statusCode || 400, {
+        success: false,
+        message: err.message,
+        error: 'INVALID_EXPIRY_CONFIG',
+      });
+    }
+  }
 
   // Re-validate targeting if any targeting field changed
   const needsTargetCheck = (
@@ -190,9 +297,11 @@ const updateAnnouncement = asyncHandler(async (req, res) => {
     return sendResponse(res, 404, { success: false, message: 'Announcement not found.', error: 'NOT_FOUND' });
   }
 
+  const annotated = annotateAnnouncement(announcement.toObject());
+
   return sendResponse(res, 200, {
     success: true,
-    data: announcement,
+    data: annotated,
     message: 'Announcement updated.',
   });
 });

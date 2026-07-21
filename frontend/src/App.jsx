@@ -26,6 +26,7 @@ import ManageAdmins   from './pages/admin/ManageAdmins';
 import ManageDepartmentInfo from './pages/admin/ManageDepartmentInfo';
 import ManageBatches       from './pages/admin/ManageBatches';
 import ManageAnnouncements from './pages/admin/ManageAnnouncements';
+import ManageAchievements  from './pages/admin/ManageAchievements';
 
 // ── Shared Public Layout (displays main Navbar) ──────────────────────────────
 function PublicLayout() {
@@ -80,6 +81,8 @@ export default function App() {
             <Route path="department-info" element={<ManageDepartmentInfo />} />
             <Route path="batches" element={<ManageBatches />} />
             <Route path="announcements" element={<ManageAnnouncements />} />
+            <Route path="certifications" element={<ManageAchievements />} />
+            <Route path="achievements" element={<ManageAchievements />} />
 
             {/* Catch-all stubs for future admin features */}
             <Route path="*" element={

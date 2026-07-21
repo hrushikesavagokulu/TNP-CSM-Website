@@ -10,6 +10,10 @@ const app = require('./src/app');
 const connectDB = require('./src/config/db');
 const { connectRedis } = require('./src/config/redis');
 
+const { startExpireAnnouncementsCron } = require('./src/jobs/expireAnnouncements.cron');
+const { startExpireAchievementsCron } = require('./src/jobs/expireAchievements.cron');
+const { startExpireEventsCron } = require('./src/jobs/expireEvents.cron');
+
 const PORT = process.env.PORT || 5000;
 
 // ── 2. Create HTTP server (Socket.io will attach here in a later phase) ───────
@@ -20,6 +24,11 @@ const server = http.createServer(app);
   try {
     await connectDB();
     await connectRedis();
+
+    // Start background cron jobs
+    startExpireAnnouncementsCron();
+    startExpireAchievementsCron();
+    startExpireEventsCron();
 
     server.listen(PORT, () => {
       console.log(`[Server] TMP backend listening on port ${PORT}`);

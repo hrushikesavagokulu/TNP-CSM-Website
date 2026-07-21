@@ -57,12 +57,31 @@ export default function ProfileForm({ user, onUpdate }) {
     links: { ...prev.links, [key]: val },
   }));
 
-  // Handle skills multi-select toggle
+  const [customSkill, setCustomSkill] = useState('');
+
+  // Handle skills multi-select toggle & custom additions
   const toggleSkill = (skill) => {
-    const next = form.skills.includes(skill)
-      ? form.skills.filter((s) => s !== skill)
+    const exists = form.skills.some((s) => s.toLowerCase() === skill.toLowerCase());
+    const next = exists
+      ? form.skills.filter((s) => s.toLowerCase() !== skill.toLowerCase())
       : [...form.skills, skill];
     setField('skills', next);
+  };
+
+  const addCustomSkill = (e) => {
+    if (e) e.preventDefault();
+    const trimmed = customSkill.trim();
+    if (!trimmed) return;
+
+    const exists = form.skills.some((s) => s.toLowerCase() === trimmed.toLowerCase());
+    if (!exists) {
+      setField('skills', [...form.skills, trimmed]);
+    }
+    setCustomSkill('');
+  };
+
+  const removeSkill = (skillToRemove) => {
+    setField('skills', form.skills.filter((s) => s.toLowerCase() !== skillToRemove.toLowerCase()));
   };
 
   // Project link actions
@@ -285,28 +304,98 @@ export default function ProfileForm({ user, onUpdate }) {
           </div>
         </div>
 
-        {/* Skill Set Catalogue Select */}
+        {/* Skill Set Catalogue & Custom Skill Manager */}
         <div className="glass-card p-6 flex flex-col gap-4">
-          <h3 className="text-sm font-semibold text-[var(--color-text-primary)] uppercase tracking-wider">Skills & Expertise</h3>
-          <div className="flex flex-wrap gap-2">
-            {skillsCatalogue.map((skill) => {
-              const selected = form.skills.includes(skill);
-              return (
-                <button
-                  type="button"
-                  key={skill}
-                  onClick={() => toggleSkill(skill)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
-                    selected
-                      ? 'bg-[var(--color-accent)] border-[var(--color-accent)] text-white'
-                      : 'border-[var(--color-border)] text-[var(--color-text-secondary)] hover:bg-[var(--color-bg-secondary)]'
-                  }`}
-                >
-                  {skill} {selected ? '✓' : '+'}
-                </button>
-              );
-            })}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[var(--color-border)] pb-3">
+            <div>
+              <h3 className="text-sm font-semibold text-[var(--color-text-primary)] uppercase tracking-wider">Skills & Tech Stack</h3>
+              <p className="text-xs text-[var(--color-text-muted)] mt-0.5">Add your technical skills, programming languages, and tools</p>
+            </div>
+            <span className="text-[10px] font-mono font-bold text-[var(--color-accent)] bg-[var(--color-accent-subtle)] px-2.5 py-1 rounded-full w-fit">
+              {form.skills.length} {form.skills.length === 1 ? 'skill' : 'skills'} added
+            </span>
           </div>
+
+          {/* Active / Selected Skills Chips */}
+          <div className="flex flex-col gap-2">
+            <label className="text-[10px] font-bold text-[var(--color-text-secondary)] uppercase tracking-wider">Your Active Skills</label>
+            {form.skills.length > 0 ? (
+              <div className="flex flex-wrap gap-2 p-3 rounded-xl bg-[var(--color-bg-secondary)]/40 border border-[var(--color-border)] min-h-[48px] items-center">
+                {form.skills.map((skill) => (
+                  <span
+                    key={skill}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-[var(--color-accent)] text-white shadow-sm transition-all"
+                  >
+                    <span>{skill}</span>
+                    <button
+                      type="button"
+                      onClick={() => removeSkill(skill)}
+                      className="w-4 h-4 rounded-full bg-white/20 hover:bg-white/40 flex items-center justify-center text-[10px] leading-none transition-colors"
+                      title={`Remove ${skill}`}
+                    >
+                      ✕
+                    </button>
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <div className="p-4 rounded-xl bg-[var(--color-bg-secondary)]/20 border border-dashed border-[var(--color-border)] text-center text-xs text-[var(--color-text-muted)]">
+                No skills added yet. Type a custom skill below or pick from suggestions.
+              </div>
+            )}
+          </div>
+
+          {/* Custom Skill Input ("Writing Space") */}
+          <div className="flex flex-col gap-1.5 pt-1">
+            <label className="text-[10px] font-bold text-[var(--color-text-secondary)] uppercase tracking-wider">Add Any Custom Skill</label>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={customSkill}
+                onChange={(e) => setCustomSkill(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    addCustomSkill();
+                  }
+                }}
+                placeholder="Type custom skill (e.g. PyTorch, Kubernetes, System Design)..."
+                className="flex-1 px-3.5 py-2 border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-primary)] rounded-xl text-xs focus:outline-none focus:border-[var(--color-accent)]"
+              />
+              <button
+                type="button"
+                onClick={addCustomSkill}
+                disabled={!customSkill.trim()}
+                className="px-4 py-2 bg-[var(--color-accent)] hover:opacity-90 disabled:opacity-50 text-white font-bold text-xs rounded-xl flex items-center gap-1 transition-all"
+              >
+                Add Skill ✓
+              </button>
+            </div>
+          </div>
+
+          {/* Quick Suggestions Catalogue */}
+          {skillsCatalogue.length > 0 && (
+            <div className="flex flex-col gap-2 pt-3 border-t border-[var(--color-border)]">
+              <label className="text-[10px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider">Catalogue Suggestions (Click to Add)</label>
+              <div className="flex flex-wrap gap-2">
+                {skillsCatalogue.map((skill) => {
+                  const isSelected = form.skills.some((s) => s.toLowerCase() === skill.toLowerCase());
+                  if (isSelected) return null; // Only show unselected suggestions
+                  return (
+                    <button
+                      type="button"
+                      key={skill}
+                      onClick={() => toggleSkill(skill)}
+                      className="px-3 py-1 rounded-full text-xs font-medium border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:border-[var(--color-accent)] hover:text-[var(--color-accent)] hover:bg-[var(--color-accent-subtle)] transition-all flex items-center gap-1"
+                    >
+                      <span>{skill}</span>
+                      <span className="text-[10px] font-bold text-[var(--color-accent)]">+</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Links & Profiles */}

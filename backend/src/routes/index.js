@@ -19,12 +19,14 @@ const adminAdmins        = require('./admin/admins.routes');
 const adminDeptInfo      = require('./admin/departmentInfo.routes');
 const adminBatches       = require('./admin/batches.routes');
 const adminAnnouncements = require('./admin/announcements.routes');
+const adminAchievements  = require('./admin/achievements.routes');
 
 // Public sub-router
 const publicRoutes  = require('./public.routes');
 
-// Student announcement sub-router
+// Student announcement & achievement sub-routers
 const studentAnnouncements = require('./student/announcement.routes');
+const studentAchievements   = require('./student/achievement.routes');
 
 const router = express.Router();
 
@@ -43,9 +45,11 @@ router.use('/admin/admins',          authenticate, requireRole('admin'), adminAd
 router.use('/admin/department-info', authenticate, requireRole('admin'), adminDeptInfo);
 router.use('/admin/batches',         authenticate, requireRole('admin'), adminBatches);
 router.use('/admin/announcements',   authenticate, requireRole('admin'), adminAnnouncements);
+router.use('/admin/achievements',    authenticate, requireRole('admin'), adminAchievements);
 
-// Mount student announcement routes at /api/v1/student (auth applied inside the router)
+// Mount student announcement & achievement routes at /api/v1/student
 router.use('/student', studentAnnouncements);
+router.use('/student/achievements', authenticate, studentAchievements);
 
 // Mount shared skills catalogue lookup (requires authentication)
 router.get('/skills-catalogue', authenticate, profileCtrl.getSkillsCatalogue);

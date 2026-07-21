@@ -69,6 +69,17 @@ const announcementSchema = new mongoose.Schema(
       default: Date.now,
     },
 
+    // ── Expiry ────────────────────────────────────────────────────────────────
+    expiresAt: {
+      type: Date,
+      default: null,
+      index: true,
+    },
+    neverExpires: {
+      type: Boolean,
+      default: false,
+    },
+
     // ── Read tracking ─────────────────────────────────────────────────────────
     // Stores which users have read this announcement and when.
     readBy: [
@@ -83,11 +94,12 @@ const announcementSchema = new mongoose.Schema(
   }
 );
 
-// Index to speed up eligibility queries
+// Index to speed up eligibility queries and cron job expiry
 announcementSchema.index({ isGeneral: 1, postedAt: -1 });
 announcementSchema.index({ targetYears: 1, postedAt: -1 });
 announcementSchema.index({ targetBatches: 1, postedAt: -1 });
 announcementSchema.index({ 'readBy.user': 1 });
+announcementSchema.index({ neverExpires: 1, expiresAt: 1 });
 
 const Announcement = mongoose.model('Announcement', announcementSchema);
 

@@ -63,19 +63,28 @@ const getAnnouncements = asyncHandler(async (req, res) => {
     });
   }
 
-  // Build Announcement query based on groupId format
-  let announcementFilter = {};
+  // Safety net query filter: exclude expired announcements (neverExpires: false AND expiresAt <= now)
+  const now = new Date();
+  const expiryFilter = {
+    $or: [
+      { neverExpires: true },
+      { expiresAt: null },
+      { expiresAt: { $gt: now } },
+    ],
+  };
+
+  let announcementFilter = { ...expiryFilter };
 
   if (group === 'general') {
-    announcementFilter = { isGeneral: true };
+    announcementFilter.isGeneral = true;
 
   } else if (group.startsWith('year-')) {
     const yr = parseInt(group.replace('year-', ''), 10);
-    announcementFilter = { targetYears: yr };
+    announcementFilter.targetYears = yr;
 
   } else if (group.startsWith('batch-')) {
     const batchId = group.replace('batch-', '');
-    announcementFilter = { targetBatches: batchId };
+    announcementFilter.targetBatches = batchId;
 
   } else {
     return sendResponse(res, 400, {

@@ -1,6 +1,6 @@
 import React from 'react';
 
-export default function PeerProfileView({ peerUser }) {
+export default function PeerProfileView({ peerUser, isAdmin }) {
   if (!peerUser) return null;
 
   return (
@@ -8,15 +8,15 @@ export default function PeerProfileView({ peerUser }) {
 
       {/* Profile Header */}
       <div className="glass-card p-6 flex flex-col sm:flex-row items-center gap-6">
-        {/* Profile Image (Redacted for peers) */}
+        {/* Profile Image */}
         <div className="relative w-24 h-24 rounded-full bg-[var(--color-bg-secondary)] border border-[var(--color-border)] overflow-hidden flex-shrink-0 flex items-center justify-center">
-          {peerUser.isPhotoHidden ? (
+          {peerUser.profileImage ? (
+            <img src={peerUser.profileImage} alt={peerUser.name} className="w-full h-full object-cover" />
+          ) : peerUser.isPhotoHidden && !isAdmin ? (
             <div className="flex flex-col items-center justify-center text-center">
               <span className="text-xl">👤</span>
               <span className="text-[9px] font-bold text-[var(--color-text-muted)] uppercase tracking-wider mt-1">Hidden</span>
             </div>
-          ) : peerUser.profileImage ? (
-            <img src={peerUser.profileImage} alt={peerUser.name} className="w-full h-full object-cover" />
           ) : (
             <span className="text-2xl font-bold text-[var(--color-text-muted)]">
               {peerUser.name?.slice(0, 2).toUpperCase()}
@@ -61,26 +61,36 @@ export default function PeerProfileView({ peerUser }) {
           </div>
         </div>
 
-        {/* Contact Numbers (Redacted for peers) */}
+        {/* Contact Numbers */}
         <div className="glass-card p-6 flex flex-col gap-4">
           <h3 className="text-sm font-semibold text-[var(--color-text-primary)] uppercase tracking-wider">Contact Numbers</h3>
           <div className="grid grid-cols-2 gap-4">
             <div>
               <p className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider">Student Phone</p>
-              <p className="text-sm font-semibold text-[var(--color-error)] mt-1 flex items-center gap-1.5 bg-[var(--color-error-bg)] w-fit px-2 py-0.5 rounded border border-[var(--color-error)]/10 font-mono">
-                🔒 Private
-              </p>
+              {peerUser.phone && peerUser.phone !== 'Private' ? (
+                <p className="text-sm font-semibold text-[var(--color-text-primary)] mt-1 font-mono">{peerUser.phone}</p>
+              ) : (
+                <p className="text-sm font-semibold text-[var(--color-error)] mt-1 flex items-center gap-1.5 bg-[var(--color-error-bg)] w-fit px-2 py-0.5 rounded border border-[var(--color-error)]/10 font-mono">
+                  🔒 Private
+                </p>
+              )}
             </div>
             <div>
               <p className="text-[10px] text-[var(--color-text-muted)] uppercase tracking-wider">Parent Phone</p>
-              <p className="text-sm font-semibold text-[var(--color-error)] mt-1 flex items-center gap-1.5 bg-[var(--color-error-bg)] w-fit px-2 py-0.5 rounded border border-[var(--color-error)]/10 font-mono">
-                🔒 Private
-              </p>
+              {peerUser.parentPhone && peerUser.parentPhone !== 'Private' ? (
+                <p className="text-sm font-semibold text-[var(--color-text-primary)] mt-1 font-mono">{peerUser.parentPhone}</p>
+              ) : (
+                <p className="text-sm font-semibold text-[var(--color-error)] mt-1 flex items-center gap-1.5 bg-[var(--color-error-bg)] w-fit px-2 py-0.5 rounded border border-[var(--color-error)]/10 font-mono">
+                  🔒 Private
+                </p>
+              )}
             </div>
           </div>
-          <p className="text-[10px] text-[var(--color-text-muted)] mt-1 leading-relaxed">
-            Contact information of other students is kept private. If you need to contact this student, please email them.
-          </p>
+          {(!peerUser.phone || peerUser.phone === 'Private') && (
+            <p className="text-[10px] text-[var(--color-text-muted)] mt-1 leading-relaxed">
+              Contact information of other students is kept private. If you need to contact this student, please email them.
+            </p>
+          )}
         </div>
       </div>
 
@@ -140,23 +150,27 @@ export default function PeerProfileView({ peerUser }) {
         )}
       </div>
 
-      {/* Achievements */}
-      {peerUser.achievements?.length > 0 && (
+      {/* Achievements & Certifications (Shown for Admin/Owner, hidden for peer students) */}
+      {(isAdmin || peerUser.achievements?.length > 0) && (
         <div className="glass-card p-6 flex flex-col gap-4">
           <h3 className="text-sm font-semibold text-[var(--color-text-primary)] uppercase tracking-wider">Achievements & Certifications</h3>
-          <div className="flex flex-col gap-3">
-            {peerUser.achievements.map((item, index) => (
-              <div key={index} className="p-3 border border-[var(--color-border)] rounded-xl bg-[var(--color-bg-secondary)]/30">
-                <p className="text-xs font-semibold text-[var(--color-text-primary)]">{item.title}</p>
-                {item.description && <p className="text-[10px] text-[var(--color-text-muted)] mt-0.5">{item.description}</p>}
-                {item.fileUrl && (
-                  <a href={item.fileUrl} target="_blank" rel="noreferrer" className="text-[10px] text-[var(--color-accent)] hover:underline mt-1 block">
-                    View Document ↗
-                  </a>
-                )}
-              </div>
-            ))}
-          </div>
+          {peerUser.achievements?.length > 0 ? (
+            <div className="flex flex-col gap-3">
+              {peerUser.achievements.map((item, index) => (
+                <div key={index} className="p-3 border border-[var(--color-border)] rounded-xl bg-[var(--color-bg-secondary)]/30">
+                  <p className="text-xs font-semibold text-[var(--color-text-primary)]">{item.title}</p>
+                  {item.description && <p className="text-[10px] text-[var(--color-text-muted)] mt-0.5">{item.description}</p>}
+                  {item.fileUrl && (
+                    <a href={item.fileUrl} target="_blank" rel="noreferrer" className="text-[10px] text-[var(--color-accent)] hover:underline mt-1 block">
+                      View Document ↗
+                    </a>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-xs text-[var(--color-text-muted)] italic">No achievements or certifications uploaded yet.</p>
+          )}
         </div>
       )}
 

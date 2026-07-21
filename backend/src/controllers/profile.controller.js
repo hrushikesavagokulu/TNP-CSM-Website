@@ -30,25 +30,27 @@ const getProfileByRollNo = asyncHandler(async (req, res) => {
     });
   }
 
-  const isOwner = req.user.rollNo === rollNo;
+  const isOwner = req.user.rollNo && req.user.rollNo.toUpperCase() === rollNo;
   const isAdmin = req.user.role === 'admin';
 
   let responseData = profileUser.toObject();
   delete responseData.passwordHash; // Safe fallback
 
   if (isOwner || isAdmin) {
-    // Owner or Admin gets full profile
+    // Owner or Admin gets full profile (all details, contact numbers, achievements)
     return sendResponse(res, 200, {
       success: true,
       data: responseData,
       message: 'Full profile retrieved successfully',
     });
   } else {
-    // Peer viewing another student profile: hide private details
+    // Peer viewing another student profile: hide private contact numbers & certifications
     responseData.phone = 'Private';
     responseData.parentPhone = 'Private';
-    responseData.profileImage = null;
-    responseData.isPhotoHidden = true;
+    if (responseData.isPhotoHidden) {
+      responseData.profileImage = null;
+    }
+    responseData.achievements = []; // Hides certifications for peer students
 
     return sendResponse(res, 200, {
       success: true,

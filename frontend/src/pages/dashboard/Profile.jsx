@@ -14,8 +14,8 @@ export default function Profile() {
   const [loading,     setLoading]     = useState(true);
   const [error,       setError]       = useState(null);
 
-  // Check if viewing own profile
-  const isOwnProfile = !rollNo || rollNo.toUpperCase() === user?.rollNo.toUpperCase();
+  // Check if viewing own profile (safely handles Admin users without a rollNo)
+  const isOwnProfile = !rollNo || (Boolean(user?.rollNo) && rollNo.toUpperCase() === user.rollNo.toUpperCase());
 
   useEffect(() => {
     setLoading(true);
@@ -86,7 +86,7 @@ export default function Profile() {
         isOwnProfile ? (
           <ProfileForm user={profileData} onUpdate={handleProfileUpdated} />
         ) : (
-          <PeerProfileView peerUser={profileData} />
+          <PeerProfileView peerUser={profileData} isAdmin={user?.role === 'admin'} />
         )
       )}
 

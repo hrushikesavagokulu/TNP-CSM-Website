@@ -44,6 +44,12 @@ function AnnouncementForm({ initial, onSave, onCancel }) {
     fetchBatches();
   }, [targetYears.join(',')]); // eslint-disable-line
 
+  // Expiry mode state
+  const [expiryMode, setExpiryMode] = useState(
+    initial?.neverExpires ? 'never' : (initial?.expiryMode || 'default')
+  );
+  const [customDays, setCustomDays] = useState(initial?.customExpiryDays || 30);
+
   const toggleYear = (yr) => {
     setTargetYears((prev) =>
       prev.includes(yr) ? prev.filter((y) => y !== yr) : [...prev, yr]
@@ -62,6 +68,11 @@ function AnnouncementForm({ initial, onSave, onCancel }) {
     if (!isGeneral && targetYears.length === 0 && targetBatches.length === 0) {
       return 'You must target at least one group: General, one or more years, or one or more batches.';
     }
+    if (expiryMode === 'custom') {
+      const days = parseInt(customDays, 10);
+      if (isNaN(days) || days <= 0) return 'Custom expiry days must be a positive number.';
+      if (days > 250) return 'Custom expiry days cannot exceed 250 days. Use "Never expires" for permanent announcements.';
+    }
     return '';
   };
 
@@ -79,6 +90,8 @@ function AnnouncementForm({ initial, onSave, onCancel }) {
         targetYears:   isGeneral ? [] : targetYears,
         targetBatches: isGeneral ? [] : targetBatches,
         attachments,
+        expiryMode,
+        customExpiryDays: expiryMode === 'custom' ? Number(customDays) : undefined,
       };
       if (initial?._id) {
         await announcementsAdminService.updateAnnouncement(initial._id, payload);
@@ -188,6 +201,68 @@ function AnnouncementForm({ initial, onSave, onCancel }) {
             )}
           </>
         )}
+      </div>
+
+      {/* Expiry Settings */}
+      <div className="form-group">
+        <label className="form-label">Expiry Lifespan *</label>
+        <div className="flex flex-col gap-2.5">
+          <label className="flex items-center gap-3 cursor-pointer">
+            <input
+              type="radio"
+              name="ann-expiry-mode"
+              value="default"
+              checked={expiryMode === 'default'}
+              onChange={() => setExpiryMode('default')}
+            />
+            <div>
+              <span className="text-xs font-bold text-[var(--color-text-primary)]">Default Lifespan (250 Days)</span>
+              <span className="text-[10px] text-[var(--color-text-muted)] block">Automatically expires after ~8 months</span>
+            </div>
+          </label>
+
+          <label className="flex items-center gap-3 cursor-pointer">
+            <input
+              type="radio"
+              name="ann-expiry-mode"
+              value="custom"
+              checked={expiryMode === 'custom'}
+              onChange={() => setExpiryMode('custom')}
+            />
+            <div>
+              <span className="text-xs font-bold text-[var(--color-text-primary)]">Custom Shorter Expiry</span>
+              <span className="text-[10px] text-[var(--color-text-muted)] block">Specify number of days (must be ≤ 250 days)</span>
+            </div>
+          </label>
+
+          {expiryMode === 'custom' && (
+            <div className="pl-7 flex items-center gap-2">
+              <input
+                type="number"
+                min="1"
+                max="250"
+                value={customDays}
+                onChange={(e) => setCustomDays(e.target.value)}
+                className="w-24 px-3 py-1.5 border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-primary)] rounded-lg text-xs font-mono"
+              />
+              <span className="text-xs font-semibold text-[var(--color-text-secondary)]">days from today</span>
+            </div>
+          )}
+
+          <label className="flex items-center gap-3 cursor-pointer">
+            <input
+              type="radio"
+              name="ann-expiry-mode"
+              value="never"
+              checked={expiryMode === 'never'}
+              onChange={() => setExpiryMode('never')}
+            />
+            <div>
+              <span className="text-xs font-bold text-[var(--color-text-primary)]">Never Expires (Permanent)</span>
+              <span className="text-[10px] text-[var(--color-text-muted)] block">Kept until manually deleted</span>
+            </div>
+          </label>
+        </div>
       </div>
 
       {/* Attachments Upload/List */}
@@ -344,6 +419,18 @@ export default function ManageAnnouncements() {
                     <span className="dot">·</span>
                     <span>{new Date(ann.postedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
                     {ann.postedBy && <><span className="dot">·</span><span>by {ann.postedBy.name}</span></>}
+                    <span className="dot">·</span>
+                    <span className={`inline-flex items-center gap-1 font-mono text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                      ann.neverExpires || ann.remainingDays === null
+                        ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                        : ann.remainingDays <= 7
+                        ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                        : 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
+                    }`}>
+                      {ann.neverExpires || ann.remainingDays === null
+                        ? '♾️ Never expires'
+                        : `⏳ ${ann.remainingDays} ${ann.remainingDays === 1 ? 'day' : 'days'} remaining`}
+                    </span>
                   </p>
                 </div>
                 <div className="ann-actions">
