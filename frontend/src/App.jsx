@@ -35,7 +35,7 @@ import ManageCompanies     from './pages/admin/ManageCompanies';
 import ManageAlumniRepos   from './pages/admin/ManageAlumniRepos';
 import ManageConnectSphere from './pages/admin/ManageConnectSphere';
 
-// Student Phase 7, 8 & 10 Pages
+// Student Phase 7, 8, 9 & 10 Pages
 import SkillRoadmap      from './pages/dashboard/SkillRoadmap';
 import Certifications    from './pages/dashboard/Certifications';
 import LearningResources from './pages/dashboard/LearningResources';
@@ -43,6 +43,7 @@ import ResumeGuide       from './pages/dashboard/ResumeGuide';
 import Companies         from './pages/dashboard/Companies';
 import AlumniRepos       from './pages/dashboard/AlumniRepos';
 import ConnectSphere     from './pages/dashboard/ConnectSphere';
+import Achievements      from './pages/dashboard/Achievements';
 
 // ── Shared Public Layout (displays main Navbar) ──────────────────────────────
 function PublicLayout() {
@@ -79,6 +80,7 @@ export default function App() {
             <Route path="announcements" element={<StudentAnnouncements />} />
             <Route path="skill-roadmap" element={<SkillRoadmap />} />
             <Route path="certifications" element={<Certifications />} />
+            <Route path="achievements" element={<Achievements />} />
             <Route path="learning-resources" element={<LearningResources />} />
             <Route path="resume-guide" element={<ResumeGuide />} />
             <Route path="companies" element={<Companies />} />

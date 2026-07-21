@@ -20,6 +20,7 @@ const adminDeptInfo      = require('./admin/departmentInfo.routes');
 const adminBatches       = require('./admin/batches.routes');
 const adminAnnouncements = require('./admin/announcements.routes');
 const adminAchievements  = require('./admin/achievements.routes');
+const { getOverviewStats } = require('../controllers/admin/overview.admin.controller');
 
 // Public sub-router
 const publicRoutes  = require('./public.routes');
@@ -79,10 +80,12 @@ router.use('/admin/alumni',            authenticate, requireRole('admin'), admin
 // Phase 10 — chat admin routes
 router.use('/admin/chat',              authenticate, requireRole('admin'), adminChat);
 router.use('/admin/connect-sphere',    authenticate, requireRole('admin'), adminChat);
+// Phase 11 — Admin overview stats
+router.get('/admin/overview-stats',    authenticate, requireRole('admin'), asyncHandler(getOverviewStats));
 
 // Mount student announcement & achievement routes at /api/v1/student
 router.use('/student', studentAnnouncements);
-router.use('/student/achievements', authenticate, studentAchievements);
+router.use('/student', studentAchievements);
 // Phase 7 — student content routes
 router.use('/student', studentContent);
 // Phase 8 — student company & alumni routes

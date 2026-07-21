@@ -1,10 +1,7 @@
 'use strict';
 
-/**
- * Achievement.model.js — Department Achievements & Spotlights Model
- */
-
-const mongoose = require('mongoose');
+const mongoose           = require('mongoose');
+const contentBlockSchema = require('./shared/contentBlock.schema');
 
 const achievementSchema = new mongoose.Schema(
   {
@@ -19,26 +16,18 @@ const achievementSchema = new mongoose.Schema(
       default: '',
       trim: true,
     },
+    media: [contentBlockSchema],
     date: {
       type: Date,
+      required: true,
       default: Date.now,
+      index: -1,
     },
-    mediaUrl: {
-      type: String,
-      default: '',
+    postedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: null,
     },
-    category: {
-      type: String,
-      default: 'General',
-      trim: true,
-    },
-    order: {
-      type: Number,
-      default: 0,
-    },
-
-    // ── Expiry ────────────────────────────────────────────────────────────────
-    // Department Achievements default to neverExpires: true (permanent record)
     expiresAt: {
       type: Date,
       default: null,
@@ -54,7 +43,8 @@ const achievementSchema = new mongoose.Schema(
   }
 );
 
-achievementSchema.index({ neverExpires: 1, expiresAt: 1 });
-achievementSchema.index({ date: -1, order: 1 });
+// Search text index on title and description
+achievementSchema.index({ title: 'text', description: 'text' });
+achievementSchema.index({ date: -1 });
 
 module.exports = mongoose.model('Achievement', achievementSchema);

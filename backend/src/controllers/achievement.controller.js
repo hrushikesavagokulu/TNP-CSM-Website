@@ -1,49 +1,48 @@
 'use strict';
 
-/**
- * achievement.controller.js — Student & Public viewing of Department Achievements
- */
-
-const Achievement = require('../models/Achievement.model');
+const Achievement      = require('../models/Achievement.model');
 const { sendResponse } = require('../utils/apiResponse');
-const asyncHandler  = require('../utils/asyncHandler');
+const asyncHandler     = require('../utils/asyncHandler');
 
-// ── GET /public/achievements (or /student/achievements) ──────────────────────
-const getPublicAchievements = asyncHandler(async (req, res) => {
-  const { search } = req.query;
-  const now = new Date();
+// ── GET /student/achievements?search=&page=&limit= ─────────────────────────
+const getAchievements = asyncHandler(async (req, res) => {
+  const search = req.query.search?.trim();
+  const page   = Math.max(1, parseInt(req.query.page, 10) || 1);
+  const limit  = Math.max(1, Math.min(100, parseInt(req.query.limit, 10) || 20));
+  const skip   = (page - 1) * limit;
 
-  // Safety net filter: exclude expired items
-  const filter = {
-    $or: [
-      { neverExpires: true },
-      { expiresAt: null },
-      { expiresAt: { $gt: now } },
-    ],
-  };
+  let query = {};
 
-  if (search && search.trim()) {
-    const regex = new RegExp(search.trim(), 'i');
-    filter.$and = [
-      {
-        $or: [
-          { title: regex },
-          { description: regex },
-          { category: regex },
-        ],
-      },
-    ];
+  if (search) {
+    // Attempt text search with regex fallback for broad matching
+    query = {
+      $or: [
+        { $text: { $search: search } },
+        { title: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } },
+      ],
+    };
   }
 
-  const items = await Achievement.find(filter)
-    .sort({ date: -1, order: 1 })
+  const total = await Achievement.countDocuments(query);
+  const achievements = await Achievement.find(query)
+    .populate('postedBy', 'name email role')
+    .sort({ date: -1, createdAt: -1 })
+    .skip(skip)
+    .limit(limit)
     .lean();
 
   return sendResponse(res, 200, {
     success: true,
-    data: items,
-    message: 'Department achievements retrieved.',
+    data: achievements,
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    },
+    message: 'Achievements retrieved successfully.',
   });
 });
 
-module.exports = { getPublicAchievements };
+module.exports = { getAchievements };
