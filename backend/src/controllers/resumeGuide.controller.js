@@ -1,12 +1,12 @@
 'use strict';
 
-const ResumeTemplate            = require('../../models/ResumeTemplate.model');
-const ResumeGuideSection        = require('../../models/ResumeGuideSection.model');
-const ResumeReference           = require('../../models/ResumeReference.model');
-const AtsCheckerLink            = require('../../models/AtsCheckerLink.model');
-const ResumeImprovementResource = require('../../models/ResumeImprovementResource.model');
-const { sendResponse }          = require('../../utils/apiResponse');
-const asyncHandler              = require('../../utils/asyncHandler');
+const ResumeTemplate            = require('../models/ResumeTemplate.model');
+const ResumeGuideSection        = require('../models/ResumeGuideSection.model');
+const ResumeReference           = require('../models/ResumeReference.model');
+const AtsCheckerLink            = require('../models/AtsCheckerLink.model');
+const ResumeImprovementResource = require('../models/ResumeImprovementResource.model');
+const { sendResponse }          = require('../utils/apiResponse');
+const asyncHandler              = require('../utils/asyncHandler');
 
 const getTemplates = asyncHandler(async (req, res) => {
   const filter = {};
