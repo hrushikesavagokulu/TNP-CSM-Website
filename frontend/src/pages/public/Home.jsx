@@ -47,7 +47,7 @@ export default function Home() {
       <div className="flex-1">
         
         {/* 1. Hero banner section */}
-        <div className="w-full relative h-[260px] sm:h-[340px] overflow-hidden bg-slate-900 flex items-center justify-center border-b border-[var(--color-border)]">
+        <div className="w-full relative h-[420px] sm:h-[520px] lg:h-[580px] overflow-hidden bg-slate-900 flex items-center justify-center border-b border-[var(--color-border)] transition-all">
           {loading ? (
             <div className="absolute inset-0 flex items-center justify-center bg-slate-800 animate-pulse">
               <span className="text-slate-400 text-xs font-bold uppercase tracking-widest">Loading department details...</span>
@@ -57,9 +57,9 @@ export default function Home() {
               <img
                 src={deptInfo.heroImageUrl}
                 alt="CSM Department Banner"
-                className="w-full h-full object-cover opacity-80"
+                className="w-full h-full object-cover opacity-90 transition-transform duration-700 hover:scale-105"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-transparent to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-950/25 to-transparent" />
             </>
           ) : (
             <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center bg-gradient-to-br from-red-900/45 to-slate-950">
