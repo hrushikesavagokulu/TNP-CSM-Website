@@ -50,6 +50,10 @@ const studentCompanies   = require('./student/companyInfo.routes');
 const studentAlumniRepos = require('./student/alumniRepo.routes');
 const studentChat        = require('./student/chat.routes');
 
+// Programming & DSA routes
+const adminDsa   = require('./admin/dsa.routes');
+const studentDsa = require('./student/dsa.routes');
+
 const { uploadGeneric }     = require('../controllers/upload.controller');
 const genericUpload         = require('../middleware/genericUpload.middleware');
 
@@ -93,6 +97,8 @@ router.use('/admin/alumni',            authenticate, requireRole('admin'), admin
 // Phase 10 — chat admin routes
 router.use('/admin/chat',              authenticate, requireRole('admin'), adminChat);
 router.use('/admin/connect-sphere',    authenticate, requireRole('admin'), adminChat);
+// Programming & DSA admin routes
+router.use('/admin/dsa',               authenticate, requireRole('admin'), adminDsa);
 // Phase 11 — Admin overview stats
 router.get('/admin/overview-stats',    authenticate, requireRole('admin'), asyncHandler(getOverviewStats));
 
@@ -108,6 +114,8 @@ router.use('/student', studentAlumniRepos);
 router.use('/student', studentChat);
 // Resume Guide v2 — student routes
 router.use('/student', studentResumeGuide);
+// Programming & DSA student routes
+router.use('/student', studentDsa);
 
 // Mount shared skills catalogue lookup (requires authentication)
 router.get('/skills-catalogue', authenticate, profileCtrl.getSkillsCatalogue);

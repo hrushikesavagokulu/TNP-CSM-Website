@@ -33,6 +33,10 @@ app.set('io', io);
     // Idempotent boot-time seed for permanent chat space
     await seedPermanentChatSpace();
 
+    // Idempotent boot-time seed for Programming & DSA topics and reference links
+    const { seedDsaData } = require('./src/utils/seedDsa.util');
+    await seedDsaData();
+
     // Start background cron jobs
     startExpireAnnouncementsCron();
     startExpireAchievementsCron();

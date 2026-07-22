@@ -1,26 +1,64 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import publicService from '../../services/public.service';
 import Footer from '../../components/layout/Footer';
 import ClickableImage from '../../components/shared/ClickableImage';
 
-// Static laboratory configuration details
+// ── Static laboratory configuration details ──────────────────────────────────
 const LABS_LIST = [
-  { name: 'CSM Lab 1', desc: 'Equipped with latest configured Lenovo ThinkCenter Neo PCs (i5 12th Gen, 16GB RAM, 512GB SSD) enabling programming in C, Java, and Python.' },
-  { name: 'CSM Lab 2', desc: 'Equipped with Lenovo ThinkCenter Neo Intel Core i5 PCs running licensed tools for DBMS, Data Mining, and Machine Learning algorithms.' },
-  { name: 'CSM Lab 3', desc: 'Dedicated programming lab environment with high-speed compiler setups for OOPs, Java, and script scripting practices.' },
-  { name: 'CSM Lab 4', desc: 'Equipped with advanced database managers and analytical model setups for SQL, DBMS, and mining projects.' },
-  { name: 'CSM Lab 5', desc: 'Focused high-tier laboratory with configurations optimized for Deep Learning models, NLP frameworks, and AI workflows.' },
-  { name: 'CSM Lab 6 (Intel Unnati Lab)', desc: 'Preeminent center of excellence for training ML, Deep Neural Networks, NLP execution, and artificial intelligence programs.' },
-  { name: 'CSM Lab 7 (Internship Lab)', desc: 'Dedicated space for project work, real-world internships, and industry-sponsored collaboration activities.' },
-  { name: 'CSM Lab 8 (Placement Training)', desc: 'Conducts intensive technical training, mock interviews, and assessment platforms to ready students for core placements.' },
+  { id: 'LAB-01', name: 'CSM Lab 1', desc: 'Equipped with latest Lenovo ThinkCenter Neo PCs (i5 12th Gen, 16GB RAM, 512GB SSD) enabling programming in C, Java, and Python.', specs: ['Lenovo Neo i5', '16GB RAM', 'Python 3', 'JDK 17'] },
+  { id: 'LAB-02', name: 'CSM Lab 2', desc: 'Equipped with Lenovo ThinkCenter Neo Intel Core i5 PCs running licensed tools for DBMS, Data Mining, and Machine Learning algorithms.', specs: ['DBMS Tools', 'Data Mining', 'Oracle DB', 'Weka'] },
+  { id: 'LAB-03', name: 'CSM Lab 3', desc: 'Dedicated programming lab environment with high-speed compiler setups for OOPs, Java, and script scripting practices.', specs: ['GCC Compiler', 'Java SDK', 'Linux OS', 'VS Code'] },
+  { id: 'LAB-04', name: 'CSM Lab 4', desc: 'Equipped with advanced database managers and analytical model setups for SQL, DBMS, and mining projects.', specs: ['MySQL Enterprise', 'MongoDB', 'R Studio', 'PostgreSQL'] },
+  { id: 'LAB-05', name: 'CSM Lab 5', desc: 'Focused high-tier laboratory with configurations optimized for Deep Learning models, NLP frameworks, and AI workflows.', specs: ['NVIDIA CUDA', 'PyTorch', 'TensorFlow', 'Jupyter'] },
+  { id: 'LAB-06', name: 'CSM Lab 6 (Intel Unnati Lab)', desc: 'Preeminent center of excellence for training ML, Deep Neural Networks, NLP execution, and artificial intelligence programs.', specs: ['Intel Unnati AI', 'OpenVINO', 'Neural Engine', 'Edge AI'] },
+  { id: 'LAB-07', name: 'CSM Lab 7 (Internship Lab)', desc: 'Dedicated space for project work, real-world internships, and industry-sponsored collaboration activities.', specs: ['Project Work', 'Industry Labs', 'Git Hub', 'Docker'] },
+  { id: 'LAB-08', name: 'CSM Lab 8 (Placement Training)', desc: 'Conducts intensive technical training, mock interviews, and assessment platforms to ready students for core placements.', specs: ['Placement Prep', 'Mock Test', 'Aptitude', 'DSA Practice'] },
 ];
 
+// ── Hero Animated Stat Counters ───────────────────────────────────────────────
+function AnimatedStat({ value, label, suffix = '' }) {
+  const [count, setCount] = useState(0);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          let start = 0;
+          const end = parseInt(value, 10);
+          const duration = 1200;
+          const stepTime = Math.abs(Math.floor(duration / end));
+          const timer = setInterval(() => {
+            start += 1;
+            setCount(start);
+            if (start >= end) clearInterval(timer);
+          }, Math.max(stepTime, 16));
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.2 }
+    );
+    if (ref.current) observer.observe(ref.current);
+    return () => observer.disconnect();
+  }, [value]);
+
+  return (
+    <div ref={ref} className="flex flex-col items-center sm:items-start">
+      <span className="font-mono text-2xl sm:text-3xl font-extrabold text-[var(--color-accent)]">
+        {count}{suffix}
+      </span>
+      <span className="text-[10px] uppercase font-mono tracking-widest text-[var(--color-text-muted)] mt-0.5">
+        {label}
+      </span>
+    </div>
+  );
+}
+
 export default function Home() {
-  const [activeTab, setActiveTab] = useState('faculty');
   const [selectedFaculty, setSelectedFaculty] = useState(null);
 
-  // ── React Query fetches ───────────────────────────────────────────────────
+  // ── React Query fetches ────────────────────────────────────────────────────
   const { data: deptInfo, isLoading: infoLoading } = useQuery({
     queryKey: ['public-dept-info'],
     queryFn: publicService.getDepartmentInfo,
@@ -42,384 +80,272 @@ export default function Home() {
   const loading = infoLoading || facultyLoading || schemeLoading;
 
   return (
-    <div className="min-h-screen bg-[var(--color-bg)] transition-colors duration-250 flex flex-col justify-between animate-fade-in font-sans">
+    <div className="min-h-screen bg-[var(--color-bg)] transition-colors duration-220 flex flex-col justify-between animate-fade-in font-sans">
       
       {/* Main content body */}
       <div className="flex-1">
         
         {/* 1. Hero banner section */}
-        <div className="w-full relative h-[420px] sm:h-[520px] lg:h-[580px] overflow-hidden bg-slate-900 flex items-center justify-center border-b border-[var(--color-border)] transition-all">
+        <div className="w-full relative h-[420px] sm:h-[520px] lg:h-[580px] overflow-hidden bg-slate-950 flex items-center justify-center border-b border-[var(--color-border)]">
           {loading ? (
-            <div className="absolute inset-0 flex items-center justify-center bg-slate-800 animate-pulse">
-              <span className="text-slate-400 text-xs font-bold uppercase tracking-widest">Loading department details...</span>
+            <div className="absolute inset-0 flex items-center justify-center bg-slate-900 animate-pulse">
+              <span className="text-slate-400 text-xs font-mono font-bold uppercase tracking-widest">Loading department details...</span>
             </div>
           ) : deptInfo?.heroImageUrl ? (
             <>
               <img
                 src={deptInfo.heroImageUrl}
                 alt="CSM Department Banner"
-                className="w-full h-full object-cover opacity-90 transition-transform duration-700 hover:scale-105"
+                className="w-full h-full object-cover opacity-85 transition-transform duration-700 hover:scale-105"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/85 via-slate-950/25 to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
             </>
           ) : (
-            <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center bg-gradient-to-br from-red-900/45 to-slate-950">
-              <h2 className="text-white text-2xl sm:text-3xl font-black tracking-wide uppercase">CSE (Artificial Intelligence & Machine Learning)</h2>
-              <p className="text-red-400 font-semibold text-xs tracking-widest uppercase mt-2">G. Pulla Reddy Engineering College (Autonomous)</p>
+            <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center bg-gradient-to-br from-black via-slate-900 to-slate-950">
+              <h2 className="text-white font-display text-2xl sm:text-4xl font-black tracking-tight uppercase">
+                CSE (Artificial Intelligence & Machine Learning)
+              </h2>
+              <p className="text-[var(--color-accent)] font-mono font-semibold text-xs tracking-widest uppercase mt-3">
+                G. Pulla Reddy Engineering College (Autonomous)
+              </p>
             </div>
           )}
           
-          {deptInfo?.heroImageUrl && !loading && (
-            <div className="absolute bottom-6 left-6 right-6 max-w-7xl mx-auto z-10 text-left">
-              <span className="text-[10px] font-black uppercase tracking-widest text-red-400 bg-red-500/10 border border-red-500/20 px-2 py-0.5 rounded-full">
-                Welcome to CSM
+          {/* Overlay Title Box */}
+          <div className="absolute bottom-6 left-6 right-6 max-w-7xl mx-auto z-10 text-left flex flex-col md:flex-row md:items-end justify-between gap-6">
+            <div>
+              <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-[var(--color-accent)] bg-[var(--color-accent-subtle)] border border-[var(--color-accent-border)] px-2.5 py-1 rounded-full">
+                Department of Record
               </span>
-              <h2 className="text-white text-xl sm:text-3xl font-black mt-2 leading-tight drop-shadow-sm uppercase">
+              <h1 className="text-white font-display text-2xl sm:text-4xl lg:text-5xl font-extrabold mt-3 leading-tight tracking-tight uppercase drop-shadow-md">
                 Computer Science & Engineering (AI & ML)
-              </h2>
+              </h1>
+              <p className="text-slate-300 text-xs sm:text-sm font-medium mt-2 max-w-2xl line-clamp-2">
+                Enriching student abilities through critical thinking, specialized programming, and core artificial intelligence research.
+              </p>
             </div>
-          )}
+
+            {/* Signature Hero Stats Counters */}
+            <div className="flex items-center gap-6 p-4 rounded-xl bg-black/60 border border-white/10 backdrop-blur-md flex-shrink-0">
+              <AnimatedStat value="247" label="Placed" />
+              <div className="h-8 w-px bg-white/20" />
+              <AnimatedStat value="38" label="Companies" />
+              <div className="h-8 w-px bg-white/20" />
+              <AnimatedStat value="92" label="Pass Rate" suffix="%" />
+            </div>
+          </div>
         </div>
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12 flex flex-col gap-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12 flex flex-col gap-16">
 
           {/* 2. Motto, Vision & Mission Two-Column Block */}
-          <section className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-stretch">
+          <section className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-stretch section-rhythm">
             {/* Motto */}
-            <div className="glass-card p-6 border-l-4 border-red-500 bg-red-500/5 flex flex-col justify-center">
-              <h3 className="text-[10px] font-black uppercase tracking-widest text-red-500">Our Motto</h3>
-              <p className="text-sm sm:text-base font-bold text-[var(--color-text-primary)] mt-3 leading-relaxed italic">
-                {deptInfo?.motto || 'CSE- Artificial Intelligence and Machine Learning Department helps its students to enrich their abilities by encouraging critical thinking through programming skills.'}
+            <div className="glass-card p-8 border-l-4 border-[var(--color-accent)] bg-[var(--color-accent-subtle)]/30 flex flex-col justify-center">
+              <span className="font-display text-xs font-bold uppercase tracking-widest text-[var(--color-accent)]">
+                Our Motto
+              </span>
+              <p className="text-sm sm:text-base font-bold text-[var(--color-text-primary)] mt-4 leading-relaxed italic">
+                "{deptInfo?.motto || 'CSE- Artificial Intelligence and Machine Learning Department helps its students to enrich their abilities by encouraging critical thinking through programming skills.'}"
               </p>
             </div>
 
             {/* Vision & Mission */}
             <div className="flex flex-col justify-between gap-4">
-              <div className="glass-card p-5 flex-1">
-                <h3 className="text-[10px] font-black uppercase tracking-wider text-[var(--color-text-primary)] flex items-center gap-1.5">
-                  <span>🎯</span> Vision
-                </h3>
-                <p className="text-xs text-[var(--color-text-secondary)] mt-2 leading-relaxed font-medium">
-                  {deptInfo?.vision || 'To be a center of excellence in education, research, and innovation in emerging Computer Science technologies while fostering leadership, ethics, and social responsibility.'}
+              <div className="glass-card p-6 flex-1">
+                <span className="font-display text-xs font-bold uppercase tracking-widest text-[var(--color-text-muted)] block mb-2">
+                  VISION
+                </span>
+                <p className="text-xs sm:text-sm text-[var(--color-text-secondary)] leading-relaxed font-medium">
+                  {deptInfo?.vision || 'To become a globally recognized center of excellence in Artificial Intelligence and Machine Learning education, nurturing innovation, research, and ethics.'}
                 </p>
               </div>
 
-              <div className="glass-card p-5 flex-1">
-                <h3 className="text-[10px] font-black uppercase tracking-wider text-[var(--color-text-primary)] flex items-center gap-1.5">
-                  <span>⚡</span> Mission
-                </h3>
-                <div className="text-xs text-[var(--color-text-secondary)] mt-2 leading-relaxed font-medium flex flex-col gap-1.5">
-                  {deptInfo?.mission ? (
-                    <p className="whitespace-pre-line">{deptInfo.mission}</p>
-                  ) : (
-                    <>
-                      <p>• Deliver industry-relevant, outcome-based education to facilitate competent learning.</p>
-                      <p>• Inculcate interest on research and innovation through critical thinking.</p>
-                      <p>• Impart values and ethics for prospective and promising engineers.</p>
-                    </>
-                  )}
+              <div className="glass-card p-6 flex-1">
+                <span className="font-display text-xs font-bold uppercase tracking-widest text-[var(--color-text-muted)] block mb-2">
+                  MISSION
+                </span>
+                <p className="text-xs sm:text-sm text-[var(--color-text-secondary)] leading-relaxed font-medium">
+                  {deptInfo?.mission || 'To impart high-quality technical education in AI & ML, foster industry-academia collaboration, and empower students to solve real-world problems responsibly.'}
+                </p>
+              </div>
+            </div>
+          </section>
+
+          {/* 3. Department Overview & Quick Stats */}
+          <section className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start section-rhythm">
+            {/* Left 2-Cols: About Department */}
+            <div className="lg:col-span-2 glass-card p-8 flex flex-col gap-4">
+              <span className="font-display text-xs font-bold uppercase tracking-widest text-[var(--color-accent)]">
+                About the Department
+              </span>
+              <h2 className="font-display text-xl sm:text-2xl font-bold text-[var(--color-text-primary)]">
+                Pioneering AI & Machine Learning Excellence
+              </h2>
+              <div className="text-xs sm:text-sm text-[var(--color-text-secondary)] leading-relaxed space-y-3 max-w-prose">
+                <p>
+                  The Department of Computer Science & Engineering (Artificial Intelligence and Machine Learning) at G. Pulla Reddy Engineering College (Autonomous) was established to meet the soaring demand for specialized computational engineers.
+                </p>
+                <p>
+                  With 8 state-of-the-art laboratories including the Intel Unnati Lab for AI Execution, our curriculum combines fundamental computer science rigor with advanced neural network modeling, natural language processing, and automated decision engines.
+                </p>
+              </div>
+            </div>
+
+            {/* Right 1-Col: Quick Stats Data Table Stack */}
+            <div className="glass-card p-6 flex flex-col gap-4">
+              <span className="font-display text-xs font-bold uppercase tracking-widest text-[var(--color-text-muted)]">
+                Department At A Glance
+              </span>
+              <div className="divide-y divide-[var(--color-border)]">
+                <div className="py-3.5 flex items-center justify-between">
+                  <span className="text-xs text-[var(--color-text-secondary)] font-medium">Total Student Intake</span>
+                  <span className="font-mono text-xl font-bold text-[var(--color-accent)]">320+</span>
+                </div>
+                <div className="py-3.5 flex items-center justify-between">
+                  <span className="text-xs text-[var(--color-text-secondary)] font-medium">Faculty Members</span>
+                  <span className="font-mono text-xl font-bold text-[var(--color-accent)]">24</span>
+                </div>
+                <div className="py-3.5 flex items-center justify-between">
+                  <span className="text-xs text-[var(--color-text-secondary)] font-medium">Specialized Labs</span>
+                  <span className="font-mono text-xl font-bold text-[var(--color-accent)]">08</span>
+                </div>
+                <div className="py-3.5 flex items-center justify-between">
+                  <span className="text-xs text-[var(--color-text-secondary)] font-medium">Autonomous Batches</span>
+                  <span className="font-mono text-xl font-bold text-[var(--color-accent)]">04</span>
                 </div>
               </div>
             </div>
           </section>
 
-          {/* 3. Navigation Tabs Bar */}
-          <section className="flex flex-col gap-6 mt-4">
-            
-            {/* Tabs selectors */}
-            <div className="flex border-b border-[var(--color-border)] gap-2">
-              <button
-                onClick={() => setActiveTab('faculty')}
-                className={`px-4 py-2.5 text-xs font-bold uppercase tracking-wider border-b-2 transition-all ${
-                  activeTab === 'faculty'
-                    ? 'border-red-500 text-red-500'
-                    : 'border-transparent text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]'
-                }`}
-              >
-                👥 Faculty Profiles
-              </button>
-              <button
-                onClick={() => setActiveTab('syllabus')}
-                className={`px-4 py-2.5 text-xs font-bold uppercase tracking-wider border-b-2 transition-all ${
-                  activeTab === 'syllabus'
-                    ? 'border-red-500 text-red-500'
-                    : 'border-transparent text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]'
-                }`}
-              >
-                📄 Syllabus & Schemes
-              </button>
-              <button
-                onClick={() => setActiveTab('laboratories')}
-                className={`px-4 py-2.5 text-xs font-bold uppercase tracking-wider border-b-2 transition-all ${
-                  activeTab === 'laboratories'
-                    ? 'border-red-500 text-red-500'
-                    : 'border-transparent text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]'
-                }`}
-              >
-                🖥️ Infrastructure & Labs
-              </button>
+          {/* 4. Faculty Grid */}
+          <section className="flex flex-col gap-6 section-rhythm">
+            <div className="flex flex-col gap-1">
+              <span className="font-display text-xs font-bold uppercase tracking-widest text-[var(--color-accent)]">
+                Academic Leadership
+              </span>
+              <h2 className="font-display text-xl sm:text-2xl font-bold text-[var(--color-text-primary)]">
+                Department Faculty & Instructors
+              </h2>
             </div>
 
-            {/* Tab 1: Faculty list */}
-            {activeTab === 'faculty' && (
-              <div className="animate-fade-in flex flex-col gap-6">
-                <div>
-                  <h4 className="text-sm font-bold text-[var(--color-text-primary)] uppercase tracking-wider">
-                    CSE (AI & ML) Faculty Profile Directory
-                  </h4>
-                  <p className="text-xs text-[var(--color-text-muted)] mt-1">
-                    Complete listing of HOD, Professors, and Lecturers. Click on any card to view detailed credentials overlay.
-                  </p>
-                </div>
-
-                {facultyLinks && facultyLinks.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {facultyLinks.map((fac) => (
-                      <div
-                        key={fac._id}
-                        onClick={() => setSelectedFaculty(fac)}
-                        className={`glass-card p-5 flex flex-col justify-between gap-4 border-t-2 relative cursor-pointer hover:border-red-500/50 hover:shadow-lg transition-all transform hover:-translate-y-0.5 ${
-                          fac.isGuest ? 'border-amber-500 bg-amber-500/[0.01]' : 'border-red-500'
-                        }`}
-                      >
-                        {fac.isGuest && (
-                          <span className="absolute top-3 right-3 text-[8px] font-black uppercase tracking-widest text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded">
-                            Guest Faculty
-                          </span>
-                        )}
-
-                        <div className="flex flex-col gap-3">
-                          {/* Profile Header Row with Photo */}
-                          <div className="flex items-center gap-3">
-                            {fac.imageUrl ? (
-                              <ClickableImage
-                                src={fac.imageUrl}
-                                alt={fac.name}
-                                className="w-12 h-12 rounded-full object-cover border-2 border-[var(--color-border)] shadow-sm"
-                              />
-                            ) : (
-                              <div className="w-12 h-12 rounded-full bg-gradient-to-br from-red-500/20 to-red-600/10 border-2 border-[var(--color-border)] text-red-500 flex items-center justify-center font-black text-sm uppercase">
-                                {fac.name.split('.').pop().trim().charAt(0)}
-                              </div>
-                            )}
-                            <div className="min-w-0">
-                              <h5 className="text-xs font-bold text-[var(--color-text-primary)] truncate">{fac.name}</h5>
-                              <p className="text-[9px] text-red-500 font-semibold uppercase tracking-wider truncate">{fac.designation}</p>
-                            </div>
-                          </div>
-
-                          <div className="flex flex-col gap-1.5 mt-1 text-[11px]">
-                            {fac.qualifications && (
-                              <p className="text-[10px] text-[var(--color-text-secondary)] font-medium">
-                                🎓 Qualifications: <span className="text-[var(--color-text-primary)]">{fac.qualifications}</span>
-                              </p>
-                            )}
-                            {fac.researchInterest && (
-                              <p className="text-[10px] text-[var(--color-text-secondary)] font-medium leading-relaxed truncate">
-                                🔬 Research: <span className="text-[var(--color-text-primary)] font-semibold">{fac.researchInterest}</span>
-                              </p>
-                            )}
-                          </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {facultyLinks?.length > 0 ? (
+                facultyLinks.map((fac) => (
+                  <div
+                    key={fac._id}
+                    onClick={() => setSelectedFaculty(fac)}
+                    className="glass-card p-5 flex flex-col gap-3 cursor-pointer hover:border-[var(--color-accent)] transition-all group"
+                  >
+                    {/* Square Avatar (Formal institutional style) */}
+                    <div className="w-full aspect-square rounded-lg bg-[var(--color-bg-secondary)] overflow-hidden border border-[var(--color-border)] flex items-center justify-center">
+                      {fac.imageUrl ? (
+                        <ClickableImage
+                          src={fac.imageUrl}
+                          alt={fac.name}
+                          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center font-display font-black text-2xl text-[var(--color-accent)] bg-[var(--color-accent-subtle)]">
+                          {fac.name.split('.').pop().trim().charAt(0)}
                         </div>
-
-                        <span className="text-[9px] font-bold text-red-500 uppercase tracking-widest self-end hover:underline">
-                          View Details ➔
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-xs text-[var(--color-text-muted)] italic py-8 text-center">
-                    No faculty details loaded yet. Complete the seed setup to populate profiles.
-                  </p>
-                )}
-              </div>
-            )}
-
-            {/* Tab 2: Syllabus schemes */}
-            {activeTab === 'syllabus' && (
-              <div className="animate-fade-in flex flex-col gap-6">
-                <div>
-                  <h4 className="text-sm font-bold text-[var(--color-text-primary)] uppercase tracking-wider">
-                    Syllabus, Regulations & Academic Schemes
-                  </h4>
-                  <p className="text-xs text-[var(--color-text-muted)] mt-1">
-                    Download and view batch schemes for CSM batches.
-                  </p>
-                </div>
-
-                {schemeLinks && schemeLinks.length > 0 ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {schemeLinks.map((scheme) => (
-                      <a
-                        key={scheme._id}
-                        href={scheme.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="glass-card p-6 flex items-center justify-between gap-4 no-underline hover:border-red-500/30 hover:shadow-md transition-all group"
-                      >
-                        <div className="min-w-0">
-                          <span className="text-[9px] font-black uppercase tracking-widest text-red-500 bg-red-500/10 px-2 py-0.5 rounded">
-                            {scheme.schemeYear}
-                          </span>
-                          <h4 className="text-xs font-bold text-[var(--color-text-primary)] mt-2 group-hover:text-red-500 transition-colors truncate">
-                            {scheme.title}
-                          </h4>
-                          <p className="text-[10px] text-[var(--color-text-muted)] mt-0.5">Click to view syllabus PDF</p>
-                        </div>
-                        <div className="text-lg text-[var(--color-text-muted)] group-hover:text-red-500 transition-colors">
-                          📄
-                        </div>
-                      </a>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-xs text-[var(--color-text-muted)] italic py-8 text-center">
-                    No academic scheme syllabus cards loaded yet.
-                  </p>
-                )}
-              </div>
-            )}
-
-            {/* Tab 3: Laboratories */}
-            {activeTab === 'laboratories' && (
-              <div className="animate-fade-in flex flex-col gap-6">
-                <div>
-                  <h4 className="text-sm font-bold text-[var(--color-text-primary)] uppercase tracking-wider">
-                    Infrastructure & Practical Laboratories
-                  </h4>
-                  <p className="text-xs text-[var(--color-text-muted)] mt-1">
-                    Our high-performance computer laboratories equipped with core compilers, GPU servers, and AI frameworks.
-                  </p>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {LABS_LIST.map((lab, index) => (
-                    <div key={index} className="glass-card p-5 hover:-translate-y-0.5 transition-all flex flex-col gap-2">
-                      <div className="flex items-center gap-3">
-                        <span className="text-xl">🖥️</span>
-                        <h4 className="text-xs font-bold text-[var(--color-text-primary)] uppercase tracking-wider">{lab.name}</h4>
-                      </div>
-                      <p className="text-[11px] text-[var(--color-text-secondary)] leading-relaxed mt-1">
-                        {lab.desc}
+                      )}
+                    </div>
+                    <div>
+                      <h3 className="font-display text-sm font-bold text-[var(--color-text-primary)] truncate group-hover:text-[var(--color-accent)] transition-colors">
+                        {fac.name}
+                      </h3>
+                      <p className="text-xs text-[var(--color-text-muted)] font-medium truncate mt-0.5">
+                        {fac.designation || 'Faculty Member'}
                       </p>
                     </div>
-                  ))}
+                  </div>
+                ))
+              ) : (
+                <div className="col-span-full text-center py-12 glass-card text-xs text-[var(--color-text-muted)] italic">
+                  Faculty list updating soon.
                 </div>
-              </div>
-            )}
+              )}
+            </div>
+          </section>
 
+          {/* 5. Labs Section */}
+          <section className="flex flex-col gap-6 section-rhythm">
+            <div className="flex flex-col gap-1">
+              <span className="font-display text-xs font-bold uppercase tracking-widest text-[var(--color-accent)]">
+                Infrastructure
+              </span>
+              <h2 className="font-display text-xl sm:text-2xl font-bold text-[var(--color-text-primary)]">
+                Specialized AI & ML Laboratories
+              </h2>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {LABS_LIST.map((lab) => (
+                <div key={lab.id} className="glass-card p-6 flex flex-col justify-between gap-4">
+                  <div>
+                    <div className="flex items-center justify-between gap-2 mb-3">
+                      <h3 className="font-display text-sm font-bold text-[var(--color-text-primary)]">{lab.name}</h3>
+                      <span className="font-mono text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-[var(--color-accent-subtle)] text-[var(--color-accent)] border border-[var(--color-accent-border)] flex-shrink-0">
+                        {lab.id}
+                      </span>
+                    </div>
+                    <p className="text-xs text-[var(--color-text-secondary)] leading-relaxed">{lab.desc}</p>
+                  </div>
+
+                  {/* Software & Spec Pills */}
+                  <div className="flex flex-wrap gap-1.5 pt-3 border-t border-[var(--color-border)]">
+                    {lab.specs.map((spec) => (
+                      <span key={spec} className="text-[10px] font-mono px-2 py-0.5 rounded bg-[var(--color-surface-raised)] text-[var(--color-text-muted)] border border-[var(--color-border)]">
+                        ✓ {spec}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
           </section>
 
         </div>
-
       </div>
 
-      {/* 4. Faculty credentials Overlay Modal */}
+      {/* Faculty Modal */}
       {selectedFaculty && (
-        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in">
-          <div className="w-full max-w-2xl bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl shadow-2xl overflow-hidden relative flex flex-col md:flex-row animate-scale-up">
-            
-            {/* Close button */}
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
+          <div className="glass-card w-full max-w-lg p-6 relative flex flex-col gap-4 animate-scale-in">
             <button
               onClick={() => setSelectedFaculty(null)}
-              className="absolute top-4 right-4 w-7 h-7 rounded-full bg-[var(--color-bg-secondary)] hover:bg-[var(--color-border)] border border-[var(--color-border)] text-xs text-[var(--color-text-primary)] flex items-center justify-center font-bold focus:outline-none transition-colors"
+              className="absolute top-4 right-4 text-xs font-bold text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]"
             >
-              ✕
+              ✕ Close
             </button>
-
-            {/* Left side profile photo */}
-            <div className="md:w-2/5 bg-[var(--color-bg-secondary)]/30 p-6 flex flex-col items-center justify-center border-b md:border-b-0 md:border-r border-[var(--color-border)]/50 min-h-[220px]">
-              {selectedFaculty.imageUrl ? (
-                <ClickableImage
-                  src={selectedFaculty.imageUrl}
-                  alt={selectedFaculty.name}
-                  className="w-32 h-32 md:w-36 md:h-36 rounded-full object-cover border-4 border-[var(--color-surface)] shadow-md"
-                />
-              ) : (
-                <div className="w-32 h-32 md:w-36 md:h-36 rounded-full bg-gradient-to-br from-red-500/20 to-red-600/10 border-4 border-[var(--color-surface)] text-red-500 flex items-center justify-center font-black text-4xl shadow-md">
-                  {selectedFaculty.name.split('.').pop().trim().charAt(0)}
-                </div>
-              )}
-
-              <h4 className="text-xs font-bold text-[var(--color-text-primary)] mt-4 text-center">{selectedFaculty.name}</h4>
-              <span className="text-[9px] font-black uppercase tracking-wider text-red-500 mt-1 text-center bg-red-500/5 border border-red-500/10 px-2 py-0.5 rounded-full">
-                {selectedFaculty.designation}
-              </span>
-            </div>
-
-            {/* Right side credentials content */}
-            <div className="md:w-3/5 p-6 md:p-8 flex flex-col justify-between gap-6">
-              <div className="flex flex-col gap-3.5">
-                <span className="text-[8px] font-black uppercase tracking-widest text-[var(--color-text-muted)] block">
-                  Faculty Credentials Directory
-                </span>
-
-                <div className="flex flex-col gap-2.5 text-xs text-[var(--color-text-secondary)]">
-                  {selectedFaculty.qualifications && (
-                    <div className="flex gap-2">
-                      <span className="font-bold text-[var(--color-text-primary)] min-w-[90px]">Qualifications:</span>
-                      <span className="font-medium">{selectedFaculty.qualifications}</span>
-                    </div>
-                  )}
-                  {selectedFaculty.researchInterest && (
-                    <div className="flex gap-2">
-                      <span className="font-bold text-[var(--color-text-primary)] min-w-[90px]">Research:</span>
-                      <span className="font-medium leading-relaxed">{selectedFaculty.researchInterest}</span>
-                    </div>
-                  )}
-                  {selectedFaculty.apaarId && (
-                    <div className="flex gap-2">
-                      <span className="font-bold text-[var(--color-text-primary)] min-w-[90px]">APAAR ID:</span>
-                      <span className="font-mono">{selectedFaculty.apaarId}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Bottom links and profiles */}
-              <div className="pt-4 border-t border-[var(--color-border)]/50 flex flex-col gap-3">
-                <div className="flex flex-wrap gap-2 text-[10px] font-bold">
-                  {selectedFaculty.googleScholar && (
-                    <a
-                      href={selectedFaculty.googleScholar}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-3 py-1.5 bg-blue-500/10 hover:bg-blue-500/20 text-blue-500 border border-blue-500/20 rounded-lg no-underline transition-all"
-                    >
-                      Google Scholar Profile
-                    </a>
-                  )}
-                  {selectedFaculty.vidwanProfile && (
-                    <a
-                      href={selectedFaculty.vidwanProfile}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-3 py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-500 border border-emerald-500/20 rounded-lg no-underline transition-all"
-                    >
-                      Vidwan Profile Link
-                    </a>
-                  )}
-                </div>
-
-                {selectedFaculty.email && (
-                  <a
-                    href={`mailto:${selectedFaculty.email}`}
-                    className="text-xs text-[var(--color-accent)] font-semibold hover:underline flex items-center gap-1.5"
-                  >
-                    📧 Contact: {selectedFaculty.email}
-                  </a>
+            <div className="flex items-start gap-4">
+              <div className="w-16 h-16 rounded-lg overflow-hidden border border-[var(--color-border)] flex-shrink-0">
+                {selectedFaculty.imageUrl ? (
+                  <ClickableImage src={selectedFaculty.imageUrl} alt={selectedFaculty.name} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center font-display font-bold text-xl text-[var(--color-accent)] bg-[var(--color-accent-subtle)]">
+                    {selectedFaculty.name.split('.').pop().trim().charAt(0)}
+                  </div>
                 )}
               </div>
+              <div>
+                <h3 className="font-display text-base font-bold text-[var(--color-text-primary)]">{selectedFaculty.name}</h3>
+                <p className="text-xs text-[var(--color-accent)] font-medium mt-0.5">{selectedFaculty.designation || 'Faculty Member'}</p>
+                {selectedFaculty.email && <p className="text-xs font-mono text-[var(--color-text-muted)] mt-1">{selectedFaculty.email}</p>}
+              </div>
             </div>
-
+            {selectedFaculty.profileUrl && (
+              <a href={selectedFaculty.profileUrl} target="_blank" rel="noreferrer" className="btn-primary text-xs w-full mt-2">
+                View Academic Profile ↗
+              </a>
+            )}
           </div>
         </div>
       )}
 
       {/* Footer */}
       <Footer />
-
     </div>
   );
 }

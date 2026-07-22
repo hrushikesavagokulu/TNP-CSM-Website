@@ -1,5 +1,3 @@
-import { Link } from 'react-router-dom';
-
 const FOOTER_CONSTANTS = {
   collegeName: 'G. Pulla Reddy Engineering College (Autonomous)',
   tagline: 'Accredited by NAAC (A+) of UGC & NBA of AICTE',
@@ -17,7 +15,7 @@ const SOCIAL_LINKS = [
 ];
 
 const USEFUL_LINKS = [
-  { label: 'Official GPREC Site', url: 'https://www.gprec.ac.in' },
+  { label: 'Official GPREC Portal', url: 'https://www.gprec.ac.in' },
   { label: 'Mandatory Disclosures', url: 'https://gprec.ac.in/mandatory-disclosures/' },
   { label: 'Student Notice Board', url: 'https://gprec.ac.in/notice-board/' },
   { label: 'Alumni Network', url: 'https://gprec.ac.in/alumni/' },
@@ -27,69 +25,74 @@ export default function Footer() {
   return (
     <footer
       id="main-footer"
-      className="border-t border-[var(--color-border)] py-12 px-6"
-      style={{
-        background: 'var(--color-bg-secondary)',
-        color: 'var(--color-text-secondary)',
-      }}
+      className="border-t border-[var(--color-border)] py-14 px-6 bg-[var(--color-bg-secondary)] text-[var(--color-text-secondary)]"
     >
-      <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
+      <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-10">
         
-        {/* Contact info column */}
+        {/* Col 1: Contact & Accreditation */}
         <div className="flex flex-col gap-3">
-          <h4 className="text-sm font-black uppercase text-[var(--color-text-primary)] tracking-wide">
+          <h4 className="font-display text-sm font-bold uppercase text-[var(--color-text-primary)] tracking-tight">
             {FOOTER_CONSTANTS.collegeName}
           </h4>
-          <p className="text-[10px] text-[var(--color-text-muted)] font-semibold uppercase tracking-wider">
+          <p className="text-[10px] font-mono text-[var(--color-text-muted)] font-semibold uppercase tracking-wider">
             {FOOTER_CONSTANTS.tagline}
           </p>
-          <p className="text-[10px] text-red-500 font-mono mt-0.5">
-            {FOOTER_CONSTANTS.codes}
-          </p>
-          <div className="text-xs text-[var(--color-text-secondary)] flex flex-col gap-1.5 mt-2">
-            <p className="leading-relaxed">📍 {FOOTER_CONSTANTS.address}</p>
+          <div className="inline-flex flex-wrap gap-2 mt-1">
+            <span className="text-[9px] font-mono font-bold uppercase px-2 py-0.5 rounded bg-[var(--color-accent-subtle)] text-[var(--color-accent)] border border-[var(--color-accent-border)]">
+              EAMCET: GPRE
+            </span>
+            <span className="text-[9px] font-mono font-bold uppercase px-2 py-0.5 rounded bg-[var(--color-surface-raised)] text-[var(--color-text-muted)] border border-[var(--color-border)]">
+              PGECET: GPRE1
+            </span>
+            <span className="text-[9px] font-mono font-bold uppercase px-2 py-0.5 rounded bg-[var(--color-success-bg)] text-[var(--color-success)] border border-[var(--color-success)]/30">
+              NAAC A+
+            </span>
+          </div>
+
+          <div className="text-xs text-[var(--color-text-secondary)] flex flex-col gap-1.5 mt-3 leading-relaxed">
+            <p>📍 {FOOTER_CONSTANTS.address}</p>
             <p>📞 Phone: {FOOTER_CONSTANTS.phone}</p>
-            <p>✉️ Email: <a href={`mailto:${FOOTER_CONSTANTS.email}`} className="text-[var(--color-accent)] hover:underline">{FOOTER_CONSTANTS.email}</a></p>
+            <p>✉️ Email: <a href={`mailto:${FOOTER_CONSTANTS.email}`} className="text-[var(--color-accent)] font-mono hover:underline">{FOOTER_CONSTANTS.email}</a></p>
           </div>
         </div>
 
-        {/* Useful links column */}
+        {/* Col 2: Useful Links */}
         <div className="flex flex-col gap-4">
-          <h4 className="text-sm font-bold uppercase text-[var(--color-text-primary)] tracking-wide">
-            Useful Links
+          <h4 className="font-display text-xs font-bold uppercase text-[var(--color-text-muted)] tracking-widest">
+            Institutional Links
           </h4>
-          <ul className="list-none p-0 m-0 flex flex-col gap-2.5 text-xs">
+          <ul className="list-none p-0 m-0 flex flex-col gap-2.5 text-xs font-medium">
             {USEFUL_LINKS.map((link) => (
               <li key={link.label}>
                 <a
                   href={link.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-[var(--color-text-secondary)] hover:text-[var(--color-accent)] no-underline transition-colors font-medium"
+                  className="text-[var(--color-text-secondary)] hover:text-[var(--color-accent)] hover:underline no-underline transition-colors"
                 >
-                  {link.label}
+                  {link.label} ↗
                 </a>
               </li>
             ))}
           </ul>
         </div>
 
-        {/* Social connections column */}
+        {/* Col 3: Social & Accreditation Badges */}
         <div className="flex flex-col gap-4">
-          <h4 className="text-sm font-bold uppercase text-[var(--color-text-primary)] tracking-wide">
-            Follow Us
+          <h4 className="font-display text-xs font-bold uppercase text-[var(--color-text-muted)] tracking-widest">
+            Department Connections
           </h4>
-          <p className="text-xs leading-relaxed">
-            Stay updated with recent academic events, placement milestones, and CSE (AI & ML) news by following GPREC social media:
+          <p className="text-xs leading-relaxed text-[var(--color-text-secondary)]">
+            Stay updated with recent academic milestones, placement statistics, and research announcements on GPREC channels:
           </p>
-          <div className="flex gap-3 text-xs mt-1">
+          <div className="flex gap-2 text-xs mt-1">
             {SOCIAL_LINKS.map((link) => (
               <a
                 key={link.label}
                 href={link.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="px-3 py-1.5 border border-[var(--color-border)] hover:border-[var(--color-accent)] text-[var(--color-text-secondary)] hover:text-[var(--color-accent)] rounded-lg font-bold transition-all no-underline"
+                className="px-3 py-1.5 border border-[var(--color-border)] hover:border-[var(--color-accent)] text-[var(--color-text-primary)] hover:text-[var(--color-accent)] rounded-lg font-semibold transition-all no-underline bg-[var(--color-surface)]"
               >
                 {link.label}
               </a>
@@ -100,9 +103,9 @@ export default function Footer() {
       </div>
 
       {/* Copyright bottom section */}
-      <div className="max-w-7xl mx-auto border-t border-[var(--color-border)]/60 mt-8 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-[10px] text-[var(--color-text-muted)] font-bold tracking-wider uppercase">
-        <p>© {FOOTER_CONSTANTS.year} GPREC CSM department. All rights reserved.</p>
-        <p>Design & Placement Portal Platform</p>
+      <div className="max-w-7xl mx-auto border-t border-[var(--color-border)] mt-10 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-[10px] font-mono text-[var(--color-text-muted)] font-bold tracking-wider uppercase">
+        <p>© {FOOTER_CONSTANTS.year} GPREC CSM Department. All rights reserved.</p>
+        <p>Training & Placement CSM Platform</p>
       </div>
     </footer>
   );

@@ -1,102 +1,95 @@
-/* ── Theme CSS custom properties ──────────────────────────────────────────────
-   Used by every component via var(--color-*) or Tailwind arbitrary values.
-   Tailwind's darkMode:'class' strategy is also active, but these CSS vars
-   are the single source of truth for cross-component theming.
+/* ── Theme CSS custom properties (TNP · CSM 2026 Redesign System) ─────────
+   Single Source of Truth for Dark (Terminal Mode) & Light (Campus Mode)
 ──────────────────────────────────────────────────────────────────────────── */
 
-/* ── Fallback & Dark theme default ───────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@600;700&display=swap');
+
 :root,
 [data-theme="dark"] {
-  --color-bg:            #080c16; /* Deep Cosmic Void */
-  --color-bg-secondary:  #0e1424;
-  --color-surface:       #121b2e; /* Luxury Midnight Blue Card Surface */
-  --color-surface-raised:#1a263f;
-  --color-border:        #1e293b;
-  --color-border-subtle: #0f172a;
+  /* Dark — Terminal Mode */
+  --color-bg:             #0a0a0a;
+  --color-bg-secondary:   #111111;
+  --color-surface:        #161616;
+  --color-surface-raised: #1f1f1f;
+  --color-border:         #2a2a2a;
+  --color-border-subtle:  #1a1a1a;
 
-  --color-text-primary:  #f8fafc;
-  --color-text-secondary:#cbd5e1;
-  --color-text-muted:    #64748b;
-  --color-text-inverse:  #080c16;
+  --color-accent:           #39d353; /* Electric Terminal Green */
+  --color-accent-hover:     #2ec447;
+  --color-accent-dim:       #1f7a34;
+  --color-accent-secondary: #39d353;
+  --color-accent-subtle:    rgba(57, 211, 83, 0.12);
+  --color-accent-border:    rgba(57, 211, 83, 0.3);
 
-  --color-accent:        #818cf8; /* Electric Neon Indigo */
-  --color-accent-hover:  #a5b4fc;
-  --color-accent-subtle: rgba(129, 140, 248, 0.12);
-  --color-accent-border: rgba(129, 140, 248, 0.3);
+  --color-text-primary:   #f5f5f5;
+  --color-text-secondary: #a3a3a3;
+  --color-text-muted:     #5c5c5c;
+  --color-text-inverse:   #0a0a0a;
+  --color-chat-own-text:  #0a0a0a; /* Dark text on green bubble */
 
-  --color-success:       #34d399;
-  --color-success-bg:    rgba(52, 211, 153, 0.10);
-  --color-warning:       #fbbf24;
-  --color-warning-bg:    rgba(251, 191, 36, 0.10);
-  --color-error:         #f87171;
-  --color-error-bg:      rgba(248, 113, 113, 0.10);
+  --color-danger:         #f87171;
+  --color-danger-bg:      rgba(248, 113, 113, 0.10);
+  --color-warning:        #fbbf24;
+  --color-warning-bg:     rgba(251, 191, 36, 0.10);
+  --color-success:        #10b981;
+  --color-success-bg:     rgba(16, 185, 129, 0.10);
 
-  --shadow-sm:           0 1px 2px rgba(0,0,0,0.30);
-  --shadow-md:           0 4px 16px rgba(0,0,0,0.40);
-  --shadow-lg:           0 8px 36px rgba(0,0,0,0.50);
-  --shadow-xl:           0 16px 48px rgba(0,0,0,0.65);
+  --shadow-sm:            0 1px 2px rgba(0,0,0,0.30);
+  --shadow-md:            0 4px 16px rgba(0,0,0,0.40);
+  --shadow-lg:            0 12px 32px rgba(0,0,0,0.50);
+  --shadow-xl:            0 16px 48px rgba(0,0,0,0.65);
 }
 
-/* ── Light theme ─────────────────────────────────────────────────────────── */
 [data-theme="light"] {
-  --color-bg:            #f8fafc;
-  --color-bg-secondary:  #f1f5f9;
-  --color-surface:       #ffffff;
-  --color-surface-raised:#f8fafc;
-  --color-border:        #e2e8f0;
-  --color-border-subtle: #f1f5f9;
+  /* Light — Campus Mode */
+  --color-bg:             #ffffff;
+  --color-bg-secondary:   #f7f8fa;
+  --color-surface:        #ffffff;
+  --color-surface-raised: #eef1f5;
+  --color-border:         #e2e5ea;
+  --color-border-subtle:  #f0f2f5;
 
-  --color-text-primary:  #0f172a;
-  --color-text-secondary:#334155;
-  --color-text-muted:    #64748b;
-  --color-text-inverse:  #ffffff;
+  --color-accent:           #1e3a8a; /* Institutional Navy */
+  --color-accent-hover:     #172554;
+  --color-accent-dim:       #1e3a8a;
+  --color-accent-secondary: #f97316; /* Action Orange */
+  --color-accent-subtle:    rgba(30, 58, 138, 0.08);
+  --color-accent-border:    rgba(30, 58, 138, 0.25);
 
-  --color-accent:        #6366f1; /* Vibrant Royal Indigo */
-  --color-accent-hover:  #4f46e5;
-  --color-accent-subtle: rgba(99, 102, 241, 0.08);
-  --color-accent-border: rgba(99, 102, 241, 0.25);
+  --color-text-primary:   #0a0a0a;
+  --color-text-secondary: #3f3f46;
+  --color-text-muted:     #8a8f98;
+  --color-text-inverse:   #ffffff;
+  --color-chat-own-text:  #ffffff; /* White text on navy bubble */
 
-  --color-success:       #059669;
-  --color-success-bg:    rgba(5, 150, 105, 0.08);
-  --color-warning:       #d97706;
-  --color-warning-bg:    rgba(217, 119, 6, 0.08);
-  --color-error:         #dc2626;
-  --color-error-bg:      rgba(220, 38, 38, 0.08);
+  --color-danger:         #dc2626;
+  --color-danger-bg:      rgba(220, 38, 38, 0.08);
+  --color-warning:        #d97706;
+  --color-warning-bg:     rgba(217, 119, 6, 0.08);
+  --color-success:        #059669;
+  --color-success-bg:     rgba(5, 150, 105, 0.08);
 
-  --shadow-sm:           0 1px 2px rgba(0,0,0,0.04);
-  --shadow-md:           0 4px 14px rgba(0,0,0,0.06);
-  --shadow-lg:           0 8px 30px rgba(0,0,0,0.08);
-  --shadow-xl:           0 16px 40px rgba(0,0,0,0.10);
+  --shadow-sm:            0 1px 2px rgba(0,0,0,0.06);
+  --shadow-md:            0 4px 16px rgba(0,0,0,0.10);
+  --shadow-lg:            0 12px 32px rgba(0,0,0,0.16);
+  --shadow-xl:            0 16px 40px rgba(0,0,0,0.20);
 }
 
-/* ── Dark theme ──────────────────────────────────────────────────────────── */
-[data-theme="dark"] {
-  --color-bg:            #080c16; /* Deep Cosmic Void */
-  --color-bg-secondary:  #0e1424;
-  --color-surface:       #121b2e; /* Luxury Midnight Blue Card Surface */
-  --color-surface-raised:#1a263f;
-  --color-border:        #1e293b;
-  --color-border-subtle: #0f172a;
+/* ── Shared Design Tokens & Fluid Scale ───────────────────────────────────── */
+:root {
+  --radius-sm:        8px;
+  --radius-md:        14px;
+  --radius-lg:        20px;
 
-  --color-text-primary:  #f8fafc;
-  --color-text-secondary:#cbd5e1;
-  --color-text-muted:    #64748b;
-  --color-text-inverse:  #080c16;
+  --ease-standard:    cubic-bezier(0.4, 0, 0.2, 1);
+  --duration-fast:    120ms;
+  --duration-base:    220ms;
 
-  --color-accent:        #818cf8; /* Electric Neon Indigo */
-  --color-accent-hover:  #a5b4fc;
-  --color-accent-subtle: rgba(129, 140, 248, 0.12);
-  --color-accent-border: rgba(129, 140, 248, 0.3);
-
-  --color-success:       #34d399;
-  --color-success-bg:    rgba(52, 211, 153, 0.10);
-  --color-warning:       #fbbf24;
-  --color-warning-bg:    rgba(251, 191, 36, 0.10);
-  --color-error:         #f87171;
-  --color-error-bg:      rgba(248, 113, 113, 0.10);
-
-  --shadow-sm:           0 1px 2px rgba(0,0,0,0.30);
-  --shadow-md:           0 4px 16px rgba(0,0,0,0.40);
-  --shadow-lg:           0 8px 36px rgba(0,0,0,0.50);
-  --shadow-xl:           0 16px 48px rgba(0,0,0,0.65);
+  --text-xs:   clamp(0.75rem, 0.72rem + 0.15vw, 0.8rem);
+  --text-sm:   clamp(0.875rem, 0.84rem + 0.15vw, 0.925rem);
+  --text-base: clamp(1rem, 0.96rem + 0.2vw, 1.0625rem);
+  --text-lg:   clamp(1.125rem, 1.05rem + 0.3vw, 1.25rem);
+  --text-xl:   clamp(1.375rem, 1.25rem + 0.5vw, 1.75rem);
+  --text-2xl:  clamp(1.75rem, 1.5rem + 1vw, 2.5rem);
+  --text-3xl:  clamp(2.25rem, 1.8rem + 1.8vw, 3.5rem);
 }

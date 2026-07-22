@@ -17,25 +17,24 @@ const NAV_ITEMS = [
 export default function DashboardSidebar({ isOpen, setIsOpen }) {
   return (
     <>
-      {/* Mobile Sidebar Overlay */}
+      {/* Mobile Drawer Overlay */}
       {isOpen && (
         <div
           id="sidebar-overlay"
           onClick={() => setIsOpen(false)}
-          className="fixed inset-0 z-40 bg-slate-900/60 backdrop-blur-sm lg:hidden"
+          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden"
         />
       )}
 
-      {/* Sidebar Panel */}
+      {/* Sidebar Panel — Icon Rail (768-1024px) / Labeled Sidebar (>=1024px) */}
       <aside
         id="dashboard-sidebar"
-        className={`fixed top-16 bottom-0 left-0 z-40 w-64 border-r border-[var(--color-border)]
-          transition-transform duration-300 ease-in-out lg:translate-x-0
-          bg-[var(--color-surface)] flex flex-col justify-between
-          ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}
+        className={`fixed top-16 bottom-0 left-0 z-40 border-r border-[var(--color-border)]
+          transition-all duration-200 ease-in-out bg-[var(--color-surface)] flex flex-col justify-between
+          w-64 md:w-18 lg:w-64 ${isOpen ? 'translate-x-0 w-64' : '-translate-x-full md:translate-x-0'}`}
       >
-        <div className="flex-1 overflow-y-auto px-4 py-6 scrollbar-thin">
-          <ul className="space-y-1 list-none p-0 m-0">
+        <div className="flex-1 overflow-y-auto py-4 scrollbar-thin">
+          <ul className="space-y-1 list-none p-0 m-0 pr-2">
             {NAV_ITEMS.map((item) => (
               <li key={item.path}>
                 <NavLink
@@ -43,18 +42,18 @@ export default function DashboardSidebar({ isOpen, setIsOpen }) {
                   end={item.path === '/dashboard'}
                   onClick={() => setIsOpen(false)}
                   className={({ isActive }) => `
-                    flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium no-underline
-                    transition-all duration-150 group
+                    flex items-center gap-3 py-2.5 px-3 rounded-r-lg text-sm font-medium no-underline
+                    transition-all duration-150 group relative
                     ${isActive
-                      ? 'bg-[var(--color-accent)] text-white shadow-sm'
-                      : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-accent-subtle)]'}
+                      ? 'border-l-[3px] border-[var(--color-accent)] bg-[var(--color-accent-subtle)] text-[var(--color-accent)] font-bold'
+                      : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:bg-[var(--color-surface-raised)] border-l-[3px] border-transparent'}
                   `}
                 >
                   {({ isActive }) => (
                     <>
                       <svg
-                        className={`w-5 h-5 flex-shrink-0 transition-colors duration-150 ${
-                          isActive ? 'text-white' : 'text-[var(--color-text-muted)] group-hover:text-[var(--color-accent)]'
+                        className={`w-5 h-5 flex-shrink-0 mx-auto lg:mx-0 transition-colors duration-150 ${
+                          isActive ? 'text-[var(--color-accent)]' : 'text-[var(--color-text-muted)] group-hover:text-[var(--color-text-primary)]'
                         }`}
                         fill="none"
                         viewBox="0 0 24 24"
@@ -63,7 +62,7 @@ export default function DashboardSidebar({ isOpen, setIsOpen }) {
                       >
                         <path strokeLinecap="round" strokeLinejoin="round" d={item.icon} />
                       </svg>
-                      <span className="truncate">{item.label}</span>
+                      <span className="truncate hidden lg:inline">{item.label}</span>
                     </>
                   )}
                 </NavLink>
@@ -73,9 +72,9 @@ export default function DashboardSidebar({ isOpen, setIsOpen }) {
         </div>
 
         {/* Sidebar Footer Info */}
-        <div className="p-4 border-t border-[var(--color-border)] bg-[var(--color-bg-secondary)]/30 text-center">
-          <p className="text-[10px] uppercase tracking-wider font-bold text-[var(--color-text-muted)]">
-            CSM Department Web Portal
+        <div className="p-4 border-t border-[var(--color-border)] bg-[var(--color-bg-secondary)]/40 text-center hidden lg:block">
+          <p className="text-[10px] uppercase tracking-wider font-mono font-bold text-[var(--color-text-muted)]">
+            CSM Department · GPREC
           </p>
         </div>
       </aside>

@@ -34,52 +34,62 @@ function Skeleton({ lines = 3 }) {
 function Empty({ icon, message }) {
   return (
     <div className="flex flex-col items-center justify-center py-16 text-center gap-3">
-      <div className="text-5xl">{icon}</div>
-      <p className="text-sm text-[var(--color-text-muted)]">{message}</p>
+      <div className="text-4xl select-none">{icon}</div>
+      <p className="text-xs font-mono text-[var(--color-text-muted)]">{message}</p>
     </div>
   );
 }
 
 // ─── Template card ────────────────────────────────────────────────────────────
 function TemplateCard({ item }) {
-  const catColors = {
-    fresher:     'bg-blue-500/10 text-blue-400',
-    experienced: 'bg-purple-500/10 text-purple-400',
-    internship:  'bg-amber-500/10 text-amber-400',
-    general:     'bg-slate-500/10 text-slate-400',
-  };
   return (
-    <div className="glass-card flex flex-col overflow-hidden border border-[var(--color-border)] hover:border-red-500/30 transition-all">
-      {/* Preview image */}
-      <div className="aspect-[3/4] bg-[var(--color-bg-secondary)] flex items-center justify-center overflow-hidden">
+    <div className="glass-card flex flex-col overflow-hidden group hover:border-[var(--color-accent)] transition-all">
+      {/* Thumbnail Container with Overflow-Hidden & Zoom */}
+      <div className="aspect-[3/4] bg-[var(--color-bg-secondary)] flex items-center justify-center overflow-hidden relative">
         {item.previewImageUrl ? (
-          <ClickableImage src={item.previewImageUrl} alt={item.title} className="w-full h-full object-cover" />
+          <ClickableImage src={item.previewImageUrl} alt={item.title} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-[1.03]" />
         ) : (
           <div className="flex flex-col items-center gap-2 text-[var(--color-text-muted)]">
-            <span className="text-4xl">📄</span>
-            <span className="text-[10px] font-bold uppercase tracking-wider">No Preview</span>
+            <span className="text-3xl">📄</span>
+            <span className="text-[10px] font-mono font-bold uppercase tracking-wider">No Preview</span>
           </div>
         )}
+
+        {/* Compact Corner Download Icon-Button */}
+        <a
+          href={item.fileUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          download
+          aria-label={`Download ${item.title}`}
+          className="absolute top-2 right-2 p-2 rounded-lg bg-black/60 hover:bg-[var(--color-accent)] text-white backdrop-blur-md border border-white/20 transition-all opacity-90 group-hover:opacity-100"
+        >
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+          </svg>
+        </a>
       </div>
 
-      {/* Info */}
-      <div className="p-4 flex flex-col gap-2">
-        <div className="flex items-start justify-between gap-2">
-          <h3 className="text-xs font-bold text-[var(--color-text-primary)] leading-tight">{item.title}</h3>
-          <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full flex-shrink-0 ${catColors[item.category] || catColors.general}`}>
-            {item.category}
-          </span>
+      {/* Info Body */}
+      <div className="p-3.5 flex flex-col gap-1.5 flex-1 justify-between">
+        <div>
+          <div className="flex items-start justify-between gap-2">
+            <h3 className="font-display text-xs font-bold text-[var(--color-text-primary)] truncate">{item.title}</h3>
+            <span className="text-[9px] font-mono font-bold uppercase px-2 py-0.5 rounded bg-[var(--color-accent-subtle)] text-[var(--color-accent)] border border-[var(--color-accent-border)] flex-shrink-0">
+              {item.category}
+            </span>
+          </div>
+          {item.description && <p className="text-[10px] text-[var(--color-text-secondary)] line-clamp-2 mt-1">{item.description}</p>}
         </div>
-        {item.description && <p className="text-[10px] text-[var(--color-text-secondary)] line-clamp-2">{item.description}</p>}
 
         <a
           href={item.fileUrl}
           target="_blank"
           rel="noopener noreferrer"
           download
-          className="mt-1 w-full py-2 bg-red-500 hover:bg-red-600 text-white text-[10px] font-bold rounded-lg text-center transition-all"
+          className="mt-2 w-full py-1.5 bg-[var(--color-accent-subtle)] hover:bg-[var(--color-accent)] text-[var(--color-accent)] hover:text-[var(--color-text-inverse)] text-[10px] font-mono font-bold rounded-lg text-center border border-[var(--color-accent-border)] transition-all"
         >
-          ↓ Download {item.fileType?.toUpperCase() || 'File'}
+          Download {item.fileType?.toUpperCase() || 'Template'}
         </a>
       </div>
     </div>
@@ -88,26 +98,33 @@ function TemplateCard({ item }) {
 
 // ─── Guide section card ───────────────────────────────────────────────────────
 function GuideSectionCard({ item, index }) {
+  const formattedIndex = String(index + 1).padStart(2, '0');
   return (
-    <div className="glass-card p-6 border border-[var(--color-border)] hover:border-red-500/20 transition-all">
-      <div className="flex items-center gap-3 mb-4">
-        <div className="w-8 h-8 rounded-xl bg-red-500/10 text-red-500 font-black text-sm flex items-center justify-center flex-shrink-0">
-          {index + 1}
-        </div>
-        <div className="flex-1 flex items-center gap-2 min-w-0">
-          <h3 className="text-sm font-bold text-[var(--color-text-primary)] truncate">{item.sectionTitle}</h3>
-          <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full flex-shrink-0 ${
-            item.isRequired ? 'bg-red-500/10 text-red-500' : 'bg-[var(--color-bg-secondary)] text-[var(--color-text-muted)]'
+    <div className="relative pl-8 sm:pl-10">
+      {/* Step Badge */}
+      <div className="absolute left-0 top-6 w-7 h-7 rounded-lg bg-[var(--color-accent-subtle)] border border-[var(--color-accent-border)] text-[var(--color-accent)] font-mono font-bold text-xs flex items-center justify-center z-10">
+        {formattedIndex}
+      </div>
+
+      {/* Section Card */}
+      <div className="glass-card p-6 flex flex-col gap-4">
+        <div className="flex items-center justify-between gap-3 pb-3 border-b border-[var(--color-border)]">
+          <h3 className="font-display text-sm font-bold text-[var(--color-text-primary)]">{item.sectionTitle}</h3>
+          <span className={`text-[9px] font-mono font-bold uppercase tracking-wider px-2.5 py-0.5 rounded border ${
+            item.isRequired
+              ? 'bg-[var(--color-accent-subtle)] text-[var(--color-accent)] border-[var(--color-accent-border)]'
+              : 'bg-[var(--color-surface-raised)] text-[var(--color-text-muted)] border-[var(--color-border)]'
           }`}>
             {item.isRequired ? 'Required' : 'Optional'}
           </span>
         </div>
+
+        {item.contentBlocks?.length > 0 ? (
+          <ContentBlockRenderer blocks={item.contentBlocks} />
+        ) : (
+          <p className="text-xs text-[var(--color-text-muted)] italic">No content yet for this section.</p>
+        )}
       </div>
-      {item.contentBlocks?.length > 0 ? (
-        <ContentBlockRenderer blocks={item.contentBlocks} />
-      ) : (
-        <p className="text-xs text-[var(--color-text-muted)] italic">No content yet for this section.</p>
-      )}
     </div>
   );
 }
@@ -115,17 +132,15 @@ function GuideSectionCard({ item, index }) {
 // ─── Reference card ───────────────────────────────────────────────────────────
 function ReferenceCard({ item }) {
   return (
-    <div className="glass-card p-5 border border-[var(--color-border)] hover:border-red-500/20 transition-all">
-      <div className="flex items-start gap-3 mb-3">
-        <div>
-          <h3 className="text-sm font-bold text-[var(--color-text-primary)]">{item.title}</h3>
-          {item.category && (
-            <span className="text-[9px] font-bold uppercase tracking-wider text-[var(--color-accent)] bg-[var(--color-accent)]/10 px-2 py-0.5 rounded-full mt-0.5 inline-block">
-              {item.category}
-            </span>
-          )}
-          {item.description && <p className="text-xs text-[var(--color-text-secondary)] mt-1">{item.description}</p>}
-        </div>
+    <div className="glass-card p-5 flex flex-col gap-3">
+      <div>
+        <h3 className="font-display text-sm font-bold text-[var(--color-text-primary)]">{item.title}</h3>
+        {item.category && (
+          <span className="text-[9px] font-mono font-bold uppercase tracking-wider text-[var(--color-accent)] bg-[var(--color-accent-subtle)] border border-[var(--color-accent-border)] px-2 py-0.5 rounded inline-block mt-1">
+            {item.category}
+          </span>
+        )}
+        {item.description && <p className="text-xs text-[var(--color-text-secondary)] mt-1.5">{item.description}</p>}
       </div>
       {item.contentBlocks?.length > 0 && <ContentBlockRenderer blocks={item.contentBlocks} />}
     </div>
@@ -135,8 +150,8 @@ function ReferenceCard({ item }) {
 // ─── Improvement resource card ────────────────────────────────────────────────
 function ImprovementCard({ item }) {
   return (
-    <div className="glass-card p-5 border border-[var(--color-border)] hover:border-red-500/20 transition-all">
-      <h3 className="text-sm font-bold text-[var(--color-text-primary)] mb-3 flex items-center gap-2">
+    <div className="glass-card p-5 flex flex-col gap-3">
+      <h3 className="font-display text-sm font-bold text-[var(--color-text-primary)] flex items-center gap-2">
         <span>💡</span> {item.title}
       </h3>
       {item.contentBlocks?.length > 0 ? (
@@ -193,36 +208,35 @@ export default function ResumeGuide() {
     return () => { cancelled = true; };
   }, []);
 
-  // Derived filtered lists
   const filteredTemplates  = catFilter === 'all'   ? templates   : templates.filter(t => t.category === catFilter);
   const filteredReferences = refCatFilter           ? references.filter(r => r.category === refCatFilter) : references;
   const refCategories      = [...new Set(references.map(r => r.category).filter(Boolean))];
 
   return (
-    <div className="flex flex-col gap-6 animate-fade-in pb-12">
+    <div className="flex flex-col gap-6 animate-fade-in pb-12 font-sans">
       {/* Header */}
       <div className="border-b border-[var(--color-border)] pb-4">
-        <h1 className="text-2xl font-black text-[var(--color-text-primary)]">Resume Guide & ATS Resources</h1>
+        <h1 className="font-display text-2xl font-extrabold text-[var(--color-text-primary)]">Resume Guide & ATS Resources</h1>
         <p className="text-xs text-[var(--color-text-muted)] mt-1">
-          Templates, step-by-step building guide, references, ATS checkers, and improvement resources — all in one place
+          Department-standard templates, sequential building guide, ATS checkers, and improvement resources.
         </p>
       </div>
 
       {error && (
-        <div className="px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/20 text-xs text-red-400">⚠ {error}</div>
+        <div className="px-4 py-3 rounded-xl bg-[var(--color-danger-bg)] border border-[var(--color-danger)]/20 text-xs text-[var(--color-danger)]">⚠ {error}</div>
       )}
 
-      {/* Tabs */}
+      {/* Tabs with Signature Underline Motif */}
       <div className="flex flex-wrap gap-2 border-b border-[var(--color-border)] pb-0">
         {TABS.map(tab => (
           <button
             key={tab.id}
             id={`resume-tab-${tab.id}`}
             onClick={() => setActiveTab(tab.id)}
-            className={`px-4 py-2.5 text-xs font-bold rounded-t-lg border border-b-0 border-transparent transition-all ${
+            className={`px-4 py-2.5 text-xs font-display font-bold transition-all relative ${
               activeTab === tab.id
-                ? 'bg-[var(--color-surface)] border-[var(--color-border)] text-red-500 -mb-px'
-                : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]'
+                ? 'text-[var(--color-accent)] signature-underline active'
+                : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] signature-underline'
             }`}
           >
             {tab.label}
@@ -233,16 +247,15 @@ export default function ResumeGuide() {
       {/* ── Templates Tab ────────────────────────────────────────────────────── */}
       {activeTab === 'templates' && (
         <div className="flex flex-col gap-5 animate-fade-in">
-          {/* Category filter */}
           <div className="flex flex-wrap gap-2">
             {CATEGORIES.map(cat => (
               <button
                 key={cat}
                 onClick={() => setCatFilter(cat)}
-                className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all ${
+                className={`px-3 py-1.5 rounded-lg text-[10px] font-mono font-bold uppercase tracking-wider transition-all ${
                   catFilter === cat
-                    ? 'bg-red-500 text-white'
-                    : 'bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:border-red-500/30'
+                    ? 'bg-[var(--color-accent)] text-[var(--color-text-inverse)]'
+                    : 'bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:border-[var(--color-accent-border)]'
                 }`}
               >
                 {cat}
@@ -257,17 +270,23 @@ export default function ResumeGuide() {
               {filteredTemplates.map(t => <TemplateCard key={t._id} item={t} />)}
             </div>
           ) : (
-            <Empty icon="📄" message="No templates available yet. Check back soon." />
+            <Empty icon="📄" message="No templates available yet." />
           )}
         </div>
       )}
 
-      {/* ── Building Guide Tab ───────────────────────────────────────────────── */}
+      {/* ── Building Guide Tab (Vertical Progress Rail) ────────────────────── */}
       {activeTab === 'guide' && (
-        <div className="flex flex-col gap-4 animate-fade-in">
-          <div className="px-4 py-3 rounded-xl bg-red-500/5 border border-red-500/20 text-xs text-red-400">
-            📌 Sections are arranged in the <strong>correct resume order</strong> — follow this sequence for best results.
+        <div className="flex flex-col gap-6 animate-fade-in relative">
+          <div className="px-4 py-3 rounded-xl bg-[var(--color-accent-subtle)] border border-[var(--color-accent-border)] text-xs text-[var(--color-accent)] font-medium">
+            📌 Sections are arranged in the <strong>correct resume order</strong> — follow this sequence.
           </div>
+
+          {/* Left Vertical Progress Rail Line */}
+          {guide.length > 0 && (
+            <div className="absolute left-3.5 top-16 bottom-6 w-0.5 bg-[var(--color-border)] -z-0" />
+          )}
+
           {loading ? <Skeleton lines={8} /> :
             guide.length > 0
               ? guide.map((s, i) => <GuideSectionCard key={s._id} item={s} index={i} />)
@@ -279,17 +298,16 @@ export default function ResumeGuide() {
       {/* ── References Tab ───────────────────────────────────────────────────── */}
       {activeTab === 'references' && (
         <div className="flex flex-col gap-4 animate-fade-in">
-          {/* Category filter (dynamic from data) */}
           {refCategories.length > 0 && (
             <div className="flex flex-wrap gap-2">
               <button onClick={() => setRefCatFilter('')}
-                className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all ${
-                  refCatFilter === '' ? 'bg-red-500 text-white' : 'bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:border-red-500/30'
+                className={`px-3 py-1.5 rounded-lg text-[10px] font-mono font-bold uppercase tracking-wider transition-all ${
+                  refCatFilter === '' ? 'bg-[var(--color-accent)] text-[var(--color-text-inverse)]' : 'bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-secondary)]'
                 }`}>All</button>
               {refCategories.map(cat => (
                 <button key={cat} onClick={() => setRefCatFilter(cat)}
-                  className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all ${
-                    refCatFilter === cat ? 'bg-red-500 text-white' : 'bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-secondary)] hover:border-red-500/30'
+                  className={`px-3 py-1.5 rounded-lg text-[10px] font-mono font-bold uppercase tracking-wider transition-all ${
+                    refCatFilter === cat ? 'bg-[var(--color-accent)] text-[var(--color-text-inverse)]' : 'bg-[var(--color-surface)] border border-[var(--color-border)] text-[var(--color-text-secondary)]'
                   }`}>{cat}</button>
               ))}
             </div>
@@ -302,15 +320,15 @@ export default function ResumeGuide() {
         </div>
       )}
 
-      {/* ── ATS Checker Tab ──────────────────────────────────────────────────── */}
+      {/* ── ATS Checker Tab (2-Column Cards) ──────────────────────────────────── */}
       {activeTab === 'ats' && (
         <div className="flex flex-col gap-4 animate-fade-in">
-          <div className="px-4 py-3 rounded-xl bg-blue-500/5 border border-blue-500/20 text-xs text-blue-400">
-            🔍 Use these tools to check your ATS (Applicant Tracking System) score before applying to companies.
+          <div className="px-4 py-3 rounded-xl bg-[var(--color-accent-subtle)] border border-[var(--color-accent-border)] text-xs text-[var(--color-accent)] font-medium">
+            🔍 Use these tools to check your ATS (Applicant Tracking System) score before applying.
           </div>
           {loading ? <Skeleton lines={4} /> :
             atsLinks.length > 0
-              ? <div className="flex flex-col gap-3">{atsLinks.map((a, i) => <AtsLinkCard key={a._id} {...a} index={i} />)}</div>
+              ? <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">{atsLinks.map((a, i) => <AtsLinkCard key={a._id} {...a} index={i} />)}</div>
               : <Empty icon="🔍" message="No ATS checker links added yet." />
           }
         </div>
