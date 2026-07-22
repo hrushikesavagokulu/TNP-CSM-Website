@@ -1,7 +1,7 @@
 # Environment
 .env
 *.env.local
-
+t.txt
 # Node
 node_modules/
 npm-debug.log*

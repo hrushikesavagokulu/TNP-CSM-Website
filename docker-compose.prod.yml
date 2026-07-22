@@ -1,0 +1,129 @@
+services:
+  # ── MongoDB ─────────────────────────────────────────────────────────────────
+  mongo:
+    image: mongo:7
+    container_name: tmp_mongo
+    restart: unless-stopped
+    networks: [tmp-net]
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  # ── Redis ────────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: tmp_redis
+    restart: unless-stopped
+    networks: [tmp-net]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Backend ──────────────────────────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: tmp_backend
+    restart: unless-stopped
+    networks: [tmp-net]
+    env_file: .env
+    environment:
+      - PORT=5000
+      - NODE_ENV=production
+      - MONGO_URI=mongodb://mongo:27017/tmp_db
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:5000/api/v1/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    # Port not exposed to host — nginx handles all traffic
+    expose:
+      - "5000"
+
+  # ── Frontend ─────────────────────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: tmp_frontend
+    restart: unless-stopped
+    networks: [tmp-net]
+    expose:
+      - "80"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+  # ── MinIO Object Storage ──────────────────────────────────────────────────────
+  minio:
+    image: minio/minio:latest
+    container_name: tmp_minio
+    command: server /data --console-address ":9001"
+    restart: unless-stopped
+    networks: [tmp-net]
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    expose:
+      - "9000"   # internal only — nginx proxies public file requests
+    # Web console accessible only via SSH tunnel: ssh -L 9001:localhost:9001 user@server
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # ── Nginx Reverse Proxy ───────────────────────────────────────────────────────
+  nginx:
+    image: nginx:alpine
+    container_name: tmp_nginx
+    restart: unless-stopped
+    networks: [tmp-net]
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx-proxy/nginx.conf:/etc/nginx/nginx.conf:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      - /var/www/certbot:/var/www/certbot:ro
+    depends_on:
+      - frontend
+      - backend
+      - minio
+
+networks:
+  tmp-net:
+    driver: bridge
+
+# ── Volumes ───────────────────────────────────────────────────────────────────
+# For MinIO on a separate EBS volume, replace the minio-data section with:
+#   minio-data:
+#     driver: local
+#     driver_opts:
+#       type: none
+#       o: bind
+#       device: /mnt/minio-data   # your EBS mount point
+volumes:
+  mongo-data:
+  redis-data:
+  minio-data:
