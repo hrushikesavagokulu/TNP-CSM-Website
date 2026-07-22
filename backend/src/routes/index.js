@@ -30,8 +30,16 @@ const studentAnnouncements = require('./student/announcement.routes');
 const studentAchievements  = require('./student/achievement.routes');
 const studentContent       = require('./student/content.routes');
 
-// Admin content routers (Phase 7 — all four use same factory)
-const { roadmapRouter, certRouter, resourceRouter, resumeRouter } = require('./admin/content.routes');
+// Phase 7 — content module admin routes (3 still use the factory; resume-guide replaced)
+const { roadmapRouter, certRouter, resourceRouter } = require('./admin/content.routes');
+// Resume Guide v2 — 5 dedicated admin routers
+const adminResumeTemplates       = require('./admin/resumeTemplates.routes');
+const adminResumeGuideSections   = require('./admin/resumeGuideSections.routes');
+const adminResumeReferences      = require('./admin/resumeReferences.routes');
+const adminAtsCheckerLinks       = require('./admin/atsCheckerLinks.routes');
+const adminResumeImprovements    = require('./admin/resumeImprovementResources.routes');
+// Student Resume Guide routes
+const studentResumeGuide         = require('./student/resumeGuide.routes');
 // Phase 8 & 10 admin routers
 const adminCompanies   = require('./admin/companies.routes');
 const adminAlumniRepos = require('./admin/alumniRepos.routes');
@@ -68,11 +76,16 @@ router.use('/admin/department-info',   authenticate, requireRole('admin'), admin
 router.use('/admin/batches',           authenticate, requireRole('admin'), adminBatches);
 router.use('/admin/announcements',     authenticate, requireRole('admin'), adminAnnouncements);
 router.use('/admin/achievements',      authenticate, requireRole('admin'), adminAchievements);
-// Phase 7 — content module admin routes (all served by same factory)
+// Phase 7 — content module admin routes (skill roadmap, certs, learning resources)
 router.use('/admin/skill-roadmap',     authenticate, requireRole('admin'), roadmapRouter);
 router.use('/admin/certifications',    authenticate, requireRole('admin'), certRouter);
 router.use('/admin/learning-resources', authenticate, requireRole('admin'), resourceRouter);
-router.use('/admin/resume-guide',      authenticate, requireRole('admin'), resumeRouter);
+// Resume Guide v2 — 5 dedicated admin route groups
+router.use('/admin/resume-templates',          authenticate, requireRole('admin'), adminResumeTemplates);
+router.use('/admin/resume-guide-sections',     authenticate, requireRole('admin'), adminResumeGuideSections);
+router.use('/admin/resume-references',         authenticate, requireRole('admin'), adminResumeReferences);
+router.use('/admin/ats-checker-links',         authenticate, requireRole('admin'), adminAtsCheckerLinks);
+router.use('/admin/resume-improvement-resources', authenticate, requireRole('admin'), adminResumeImprovements);
 // Phase 8 — companies & alumni admin routes
 router.use('/admin/companies',         authenticate, requireRole('admin'), adminCompanies);
 router.use('/admin/alumni-repos',      authenticate, requireRole('admin'), adminAlumniRepos);
@@ -93,6 +106,8 @@ router.use('/student', studentCompanies);
 router.use('/student', studentAlumniRepos);
 // Phase 10 — student chat routes
 router.use('/student', studentChat);
+// Resume Guide v2 — student routes
+router.use('/student', studentResumeGuide);
 
 // Mount shared skills catalogue lookup (requires authentication)
 router.get('/skills-catalogue', authenticate, profileCtrl.getSkillsCatalogue);

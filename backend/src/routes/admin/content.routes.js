@@ -3,10 +3,8 @@
 /**
  * content.routes.js
  *
- * Mounts all four Phase 7 admin content routers.
- * Auth + requireRole('admin') is applied at index.js when this router is mounted.
- *
- * All four use the SAME factory — createContentAdminController — NOT separate files.
+ * Mounts Phase 7 admin content routers for Skill Roadmap, Certifications, and Learning Resources.
+ * Resume Guide has been replaced by 5 dedicated routers in the Resume Guide v2 module.
  */
 
 const express = require('express');
@@ -14,7 +12,6 @@ const express = require('express');
 const SkillRoadmap     = require('../../models/SkillRoadmap.model');
 const Certification    = require('../../models/Certification.model');
 const LearningResource = require('../../models/LearningResource.model');
-const ResumeGuide      = require('../../models/ResumeGuide.model');
 
 const { createContentAdminController } = require('../../controllers/admin/content.admin.controller');
 
@@ -22,7 +19,6 @@ const { createContentAdminController } = require('../../controllers/admin/conten
 const roadmapCtrl  = createContentAdminController(SkillRoadmap,     { sortFields: ['semester', 'order'] });
 const certCtrl     = createContentAdminController(Certification,     { sortFields: ['semester', 'order'] });
 const resourceCtrl = createContentAdminController(LearningResource,  { sortFields: ['skillName', 'order'] });
-const resumeCtrl   = createContentAdminController(ResumeGuide,       { sortFields: ['order'] });
 
 // ── Helper: build a small CRUD router from a controller set ───────────────────
 function buildContentRouter(ctrl) {
@@ -38,5 +34,4 @@ module.exports = {
   roadmapRouter:  buildContentRouter(roadmapCtrl),
   certRouter:     buildContentRouter(certCtrl),
   resourceRouter: buildContentRouter(resourceCtrl),
-  resumeRouter:   buildContentRouter(resumeCtrl),
 };
