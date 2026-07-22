@@ -4,11 +4,19 @@ const asyncHandler = require('../utils/asyncHandler');
 const { sendResponse } = require('../utils/apiResponse');
 
 // ── GET /api/v1/student/dsa/topics & /api/v1/admin/dsa/topics ────────────────
-const getTopics = asyncHandler(async (_req, res) => {
+const getTopics = asyncHandler(async (req, res) => {
+  const { track } = req.query;
+
   const topics = await DsaTopic.find().sort({ order: 1, createdAt: 1 }).lean();
 
-  // Aggregate problem counts per topic
+  const matchStage = {};
+  if (track && track !== 'all') {
+    matchStage.track = track.toLowerCase();
+  }
+
+  // Aggregate problem counts per topic and track
   const problemCounts = await DsaProblem.aggregate([
+    { $match: matchStage },
     { $group: { _id: '$topic', count: { $sum: 1 } } },
   ]);
 
@@ -22,19 +30,36 @@ const getTopics = asyncHandler(async (_req, res) => {
     problemCount: countMap[t.name] || 0,
   }));
 
+  // Aggregate track totals
+  const trackCounts = await DsaProblem.aggregate([
+    { $group: { _id: '$track', count: { $sum: 1 } } },
+  ]);
+
+  const trackTotals = { dsa: 0, programming: 0, total: 0 };
+  trackCounts.forEach((tc) => {
+    if (tc._id) trackTotals[tc._id] = tc.count;
+    trackTotals.total += tc.count;
+  });
+
   return sendResponse(res, 200, {
     success: true,
-    data: topicsWithCounts,
+    data: {
+      topics: topicsWithCounts,
+      trackTotals,
+    },
     message: 'DSA topics retrieved successfully.',
   });
 });
 
 // ── GET /api/v1/student/dsa/problems & /api/v1/admin/dsa/problems ──────────────
 const getProblems = asyncHandler(async (req, res) => {
-  const { topic, difficulty, source, search, page = 1, limit = 50 } = req.query;
+  const { track, topic, difficulty, source, search, page = 1, limit = 50 } = req.query;
 
   const query = {};
 
+  if (track && track !== 'all') {
+    query.track = track.toLowerCase();
+  }
   if (topic && topic !== 'all') {
     query.topic = topic;
   }
@@ -45,7 +70,12 @@ const getProblems = asyncHandler(async (req, res) => {
     query.source = source.toLowerCase();
   }
   if (search && search.trim()) {
-    query.title = { $regex: search.trim(), $options: 'i' };
+    query.$or = [
+      { title: { $regex: search.trim(), $options: 'i' } },
+      { topic: { $regex: search.trim(), $options: 'i' } },
+      { patterns: { $regex: search.trim(), $options: 'i' } },
+      { companies: { $regex: search.trim(), $options: 'i' } },
+    ];
   }
 
   const pageNum  = Math.max(1, parseInt(page, 10) || 1);
@@ -78,7 +108,20 @@ const getProblems = asyncHandler(async (req, res) => {
 
 // ── POST /api/v1/admin/dsa/problems (Admin Only) ─────────────────────────────
 const addProblem = asyncHandler(async (req, res) => {
-  const { title, link, source, difficulty, topic, order } = req.body;
+  const {
+    slugId,
+    title,
+    link,
+    source,
+    track,
+    difficulty,
+    topic,
+    patterns,
+    companies,
+    frequency,
+    sheetRefs,
+    order,
+  } = req.body;
 
   if (!title || !link || !topic) {
     return sendResponse(res, 400, {
@@ -88,11 +131,17 @@ const addProblem = asyncHandler(async (req, res) => {
   }
 
   const problem = await DsaProblem.create({
+    slugId: slugId || `${source || 'lc'}-${title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
     title: title.trim(),
     link: link.trim(),
     source: (source || 'leetcode').toLowerCase().trim(),
+    track: (track || 'dsa').toLowerCase().trim(),
     difficulty: (difficulty || 'easy').toLowerCase().trim(),
     topic: topic.trim(),
+    patterns: Array.isArray(patterns) ? patterns : [],
+    companies: Array.isArray(companies) ? companies : [],
+    frequency: (frequency || 'medium').toLowerCase().trim(),
+    sheetRefs: Array.isArray(sheetRefs) ? sheetRefs : [],
     order: Number(order) || 0,
   });
 
@@ -116,14 +165,20 @@ const bulkAddProblems = asyncHandler(async (req, res) => {
 
   const operations = problems.map((p, idx) => ({
     updateOne: {
-      filter: { title: p.title.trim(), topic: p.topic.trim() },
+      filter: { link: p.link.trim() },
       update: {
         $set: {
+          slugId: p.slugId || `${p.source || 'lc'}-${p.title.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`,
           title: p.title.trim(),
           link: p.link.trim(),
           source: (p.source || 'leetcode').toLowerCase().trim(),
+          track: (p.track || 'dsa').toLowerCase().trim(),
           difficulty: (p.difficulty || 'easy').toLowerCase().trim(),
           topic: p.topic.trim(),
+          patterns: Array.isArray(p.patterns) ? p.patterns : [],
+          companies: Array.isArray(p.companies) ? p.companies : [],
+          frequency: (p.frequency || 'medium').toLowerCase().trim(),
+          sheetRefs: Array.isArray(p.sheetRefs) ? p.sheetRefs : [],
           order: typeof p.order === 'number' ? p.order : idx,
         },
       },

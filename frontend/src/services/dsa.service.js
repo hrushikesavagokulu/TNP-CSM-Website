@@ -1,8 +1,8 @@
 import api from './api';
 
 const dsaService = {
-  getTopics: async () => {
-    const res = await api.get('/student/dsa/topics');
+  getTopics: async (params = {}) => {
+    const res = await api.get('/student/dsa/topics', { params });
     return res.data.data;
   },
   getProblems: async (params = {}) => {

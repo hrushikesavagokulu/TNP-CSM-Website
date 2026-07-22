@@ -46,6 +46,8 @@ import Companies         from './pages/dashboard/Companies';
 import AlumniRepos       from './pages/dashboard/AlumniRepos';
 import ConnectSphere     from './pages/dashboard/ConnectSphere';
 import Achievements      from './pages/dashboard/Achievements';
+import ProgrammingDsa    from './pages/dashboard/ProgrammingDsa';
+import ManageProgrammingDsa from './pages/admin/ManageProgrammingDsa';
 
 // ── Shared Public Layout (displays main Navbar) ──────────────────────────────
 function PublicLayout() {
@@ -90,6 +92,8 @@ export default function App() {
               <Route path="companies" element={<Companies />} />
               <Route path="alumni-repos" element={<AlumniRepos />} />
               <Route path="alumni" element={<AlumniRepos />} />
+              <Route path="programming-dsa" element={<ProgrammingDsa />} />
+              <Route path="dsa" element={<ProgrammingDsa />} />
               <Route path="connect-sphere" element={<ConnectSphere />} />
               <Route path="chat" element={<ConnectSphere />} />
               
@@ -120,6 +124,8 @@ export default function App() {
               <Route path="companies" element={<ManageCompanies />} />
               <Route path="alumni-repos" element={<ManageAlumniRepos />} />
               <Route path="alumni" element={<ManageAlumniRepos />} />
+              <Route path="programming-dsa" element={<ManageProgrammingDsa />} />
+              <Route path="dsa" element={<ManageProgrammingDsa />} />
               <Route path="connect-sphere" element={<ManageConnectSphere />} />
               <Route path="chat" element={<ManageConnectSphere />} />
 

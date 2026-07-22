@@ -4,8 +4,8 @@ import ProgressRing from '../../components/shared/ProgressRing';
 import SearchStudents from '../../components/shared/SearchStudents';
 import ClickableImage from '../../components/shared/ClickableImage';
 
-// Platform feature modules configuration
 const BENTO_FEATURE_MODULES = [
+  { id: 'dsa', name: 'Programming & DSA', isBento: true, icon: '💻', desc: '41 Topic Roadmaps, concept reference links, LeetCode & GeeksForGeeks practice problems.', path: '/dashboard/programming-dsa', tag: 'Placement Prep' },
   { id: 'roadmap', name: 'Skill Roadmap', isBento: true, icon: '🗺️', desc: 'Semester-wise skill progression, academic milestones, and target goals tracking.', path: '/dashboard/skill-roadmap', tag: 'High Priority' },
   { id: 'resumes', name: 'Resume Guide', isBento: true, icon: '📄', desc: 'Build ATS-compliant resumes with department templates and AI section guides.', path: '/dashboard/resume-guide', tag: 'High Priority' },
   { id: 'chat', name: 'Connect Sphere', isBento: true, icon: '💬', desc: 'Real-time department chat space for peer collaboration and study groups.', path: '/dashboard/connect-sphere', tag: 'Live Chat' },

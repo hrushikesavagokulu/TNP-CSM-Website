@@ -1,8 +1,8 @@
 import api from '../api';
 
 const adminDsaService = {
-  getTopics: async () => {
-    const res = await api.get('/admin/dsa/topics');
+  getTopics: async (params = {}) => {
+    const res = await api.get('/admin/dsa/topics', { params });
     return res.data.data;
   },
   getProblems: async (params = {}) => {
