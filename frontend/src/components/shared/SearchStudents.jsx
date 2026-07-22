@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import profileService from '../../services/profile.service';
+import ClickableImage from './ClickableImage';
 
 export default function SearchStudents() {
   const [query,      setQuery]      = useState('');
@@ -106,7 +107,7 @@ export default function SearchStudents() {
                     {/* User profile photo */}
                     <div className="w-8 h-8 rounded-full bg-[var(--color-border)] border border-[var(--color-border)] flex items-center justify-center overflow-hidden">
                       {student.profileImage ? (
-                        <img src={student.profileImage} alt={student.name} className="w-full h-full object-cover" />
+                        <ClickableImage src={student.profileImage} alt={student.name} className="w-full h-full object-cover" />
                       ) : (
                         <span className="text-[10px] font-bold text-[var(--color-text-muted)]">
                           {student.name.slice(0, 2).toUpperCase()}

@@ -11,6 +11,8 @@ import { useMemo } from 'react';
  * - PDF Documents & File Attachments
  */
 
+import ClickableImage from './ClickableImage';
+
 function isYouTube(url) {
   return url && (url.includes('youtube.com') || url.includes('youtu.be'));
 }
@@ -130,11 +132,10 @@ function renderBlock(block) {
     case 'image':
       return (
         <BlockWrapper key={_id} label={label}>
-          <img
+          <ClickableImage
             src={value}
-            alt={label || 'Image'}
-            onClick={(e) => e.stopPropagation()}
-            className="content-block-image max-h-80 my-1"
+            alt={label || 'Content Image'}
+            className="content-block-image max-h-80 my-1 rounded-lg border border-[var(--color-border)]"
           />
         </BlockWrapper>
       );

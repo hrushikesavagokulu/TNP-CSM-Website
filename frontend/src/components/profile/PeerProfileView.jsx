@@ -1,4 +1,5 @@
 import React from 'react';
+import ClickableImage from '../shared/ClickableImage';
 
 export default function PeerProfileView({ peerUser, isAdmin }) {
   if (!peerUser) return null;
@@ -11,7 +12,7 @@ export default function PeerProfileView({ peerUser, isAdmin }) {
         {/* Profile Image */}
         <div className="relative w-24 h-24 rounded-full bg-[var(--color-bg-secondary)] border border-[var(--color-border)] overflow-hidden flex-shrink-0 flex items-center justify-center">
           {peerUser.profileImage ? (
-            <img src={peerUser.profileImage} alt={peerUser.name} className="w-full h-full object-cover" />
+            <ClickableImage src={peerUser.profileImage} alt={peerUser.name} className="w-full h-full object-cover" />
           ) : peerUser.isPhotoHidden && !isAdmin ? (
             <div className="flex flex-col items-center justify-center text-center">
               <span className="text-xl">👤</span>

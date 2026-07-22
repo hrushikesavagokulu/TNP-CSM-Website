@@ -2,13 +2,14 @@ import { useState, useEffect } from 'react';
 import profileService from '../../services/profile.service';
 import FileUploader from '../shared/FileUploader';
 import OtpInput from '../shared/OtpInput';
+import ClickableImage from '../shared/ClickableImage';
 
 export default function ProfileForm({ user, onUpdate }) {
   const [form, setForm] = useState({
     phone: '', parentPhone: '', branch: '', isHostel: false,
     laptopAvailable: false, mncOrHigherEd: false, skills: [],
     links: { linkedin: '', github: '', leetcode: '', portfolio: '' },
-    projectLinks: [''], achievements: [], profileImage: null,
+    projectLinks: [''], achievements: [], profileImage: null, profileImageIsPublic: false,
   });
 
   const [skillsCatalogue, setSkillsCatalogue] = useState([]);
@@ -26,22 +27,23 @@ export default function ProfileForm({ user, onUpdate }) {
   useEffect(() => {
     if (user) {
       setForm({
-        phone:           user.phone || '',
-        parentPhone:     user.parentPhone || '',
-        branch:          user.branch || '',
-        isHostel:        !!user.isHostel,
-        laptopAvailable: !!user.laptopAvailable,
-        mncOrHigherEd:   !!user.mncOrHigherEd,
-        skills:          user.skills || [],
+        phone:                user.phone || '',
+        parentPhone:          user.parentPhone || '',
+        branch:               user.branch || '',
+        isHostel:             !!user.isHostel,
+        laptopAvailable:      !!user.laptopAvailable,
+        mncOrHigherEd:        !!user.mncOrHigherEd,
+        skills:               user.skills || [],
         links: {
           linkedin:  user.links?.linkedin || '',
           github:    user.links?.github || '',
           leetcode:  user.links?.leetcode || '',
           portfolio: user.links?.portfolio || '',
         },
-        projectLinks:    user.projectLinks?.length ? [...user.projectLinks] : [''],
-        achievements:    user.achievements || [],
-        profileImage:    user.profileImage || null,
+        projectLinks:         user.projectLinks?.length ? [...user.projectLinks] : [''],
+        achievements:         user.achievements || [],
+        profileImage:         user.profileImage || null,
+        profileImageIsPublic: !!user.profileImageIsPublic,
       });
     }
 
@@ -218,7 +220,7 @@ export default function ProfileForm({ user, onUpdate }) {
         <div className="glass-card p-6 flex flex-col sm:flex-row items-center gap-6">
           <div className="relative w-24 h-24 rounded-full bg-[var(--color-bg-secondary)] border border-[var(--color-border)] overflow-hidden flex-shrink-0">
             {form.profileImage ? (
-              <img src={form.profileImage} alt={user?.name} className="w-full h-full object-cover" />
+              <ClickableImage src={form.profileImage} alt={user?.name} className="w-full h-full object-cover" />
             ) : (
               <div className="w-full h-full flex items-center justify-center text-2xl font-bold text-[var(--color-text-muted)]">
                 {user?.name?.slice(0, 2).toUpperCase()}
@@ -255,6 +257,25 @@ export default function ProfileForm({ user, onUpdate }) {
               maxSizeMB={5}
               onUploadComplete={(url) => setField('profileImage', url)}
             />
+
+            {/* Public / Private Photo Visibility Toggle */}
+            <div className="pt-3 border-t border-[var(--color-border)] flex flex-col gap-1.5">
+              <label className="flex items-center gap-3 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  id="profile-photo-public-toggle"
+                  checked={!!form.profileImageIsPublic}
+                  onChange={(e) => setField('profileImageIsPublic', e.target.checked)}
+                  className="w-4 h-4 rounded border-[var(--color-border)] text-red-500 focus:ring-red-500"
+                />
+                <span className="text-xs font-bold text-[var(--color-text-primary)]">
+                  Make my profile photo visible to other students
+                </span>
+              </label>
+              <p className="text-[10px] text-[var(--color-text-muted)] leading-relaxed pl-7">
+                When off, only you and admins can see your photo. Other fields on your profile remain visible to peers regardless of this setting.
+              </p>
+            </div>
           </div>
 
           {/* Box 2: Academic Info */}

@@ -6,6 +6,7 @@ import adminAtsLinksService          from '../../services/admin/atsCheckerLinks.
 import adminImprovementService       from '../../services/admin/resumeImprovementResources.service';
 import ContentBlockEditor            from '../../components/shared/ContentBlockEditor';
 import ContentBlockRenderer          from '../../components/shared/ContentBlockRenderer';
+import ClickableImage                 from '../../components/shared/ClickableImage';
 import api                           from '../../services/api';
 
 // ─── Shared helper components ─────────────────────────────────────────────────
@@ -147,7 +148,7 @@ function TemplatesTab({ toast }) {
           {/* Preview Image */}
           <div className="border border-[var(--color-border)] rounded-xl p-4 flex flex-col gap-2">
             <p className="text-[10px] font-bold text-[var(--color-text-secondary)] uppercase tracking-wider">Preview Image (optional)</p>
-            {form.previewImageUrl && <img src={form.previewImageUrl} alt="preview" className="w-16 h-20 object-cover rounded-lg border border-[var(--color-border)]" />}
+            {form.previewImageUrl && <ClickableImage src={form.previewImageUrl} alt="preview" className="w-16 h-20 object-cover rounded-lg border border-[var(--color-border)]" />}
             <input ref={previewRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={handlePreviewUpload} className="hidden" />
             <button type="button" disabled={uploading.preview} onClick={() => previewRef.current?.click()} className="px-3 py-2 bg-[var(--color-bg-secondary)] text-[var(--color-text-secondary)] text-[10px] font-bold rounded-lg hover:bg-[var(--color-border)] disabled:opacity-50 transition-all">
               {uploading.preview ? 'Uploading…' : form.previewImageUrl ? 'Change Image' : '↑ Upload Preview'}
@@ -174,7 +175,7 @@ function TemplatesTab({ toast }) {
               <tr key={item._id} className="hover:bg-[var(--color-bg-secondary)]/10 transition-colors">
                 <td className="p-3">
                   {item.previewImageUrl
-                    ? <img src={item.previewImageUrl} alt={item.title} className="w-10 h-12 object-cover rounded-lg border border-[var(--color-border)]" />
+                    ? <ClickableImage src={item.previewImageUrl} alt={item.title} className="w-10 h-12 object-cover rounded-lg border border-[var(--color-border)]" />
                     : <div className="w-10 h-12 bg-[var(--color-bg-secondary)] rounded-lg flex items-center justify-center text-[var(--color-text-muted)] text-lg">📄</div>
                   }
                 </td>

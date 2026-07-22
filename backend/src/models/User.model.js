@@ -66,10 +66,11 @@ const userSchema = new mongoose.Schema(
     isActive:     { type: Boolean, default: true },
 
     // ── Profile ────────────────────────────────────────────────────────────
-    profileImage:    { type: String, default: null },
-    isHostel:        { type: Boolean },
-    laptopAvailable: { type: Boolean },
-    mncOrHigherEd:   { type: Boolean },
+    profileImage:          { type: String, default: null },
+    profileImageIsPublic:  { type: Boolean, default: false },
+    isHostel:              { type: Boolean },
+    laptopAvailable:       { type: Boolean },
+    mncOrHigherEd:         { type: Boolean },
 
     // ── Skills & links ─────────────────────────────────────────────────────
     skills:       [{ type: String }],

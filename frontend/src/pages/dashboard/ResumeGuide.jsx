@@ -6,6 +6,7 @@ import atsCheckerLinksService         from '../../services/atsCheckerLinks.servi
 import resumeImprovementResourcesService from '../../services/resumeImprovementResources.service';
 import ContentBlockRenderer           from '../../components/shared/ContentBlockRenderer';
 import AtsLinkCard                    from '../../components/resumeGuide/AtsLinkCard';
+import ClickableImage                 from '../../components/shared/ClickableImage';
 
 // ─── Tab config ───────────────────────────────────────────────────────────────
 const TABS = [
@@ -52,7 +53,7 @@ function TemplateCard({ item }) {
       {/* Preview image */}
       <div className="aspect-[3/4] bg-[var(--color-bg-secondary)] flex items-center justify-center overflow-hidden">
         {item.previewImageUrl ? (
-          <img src={item.previewImageUrl} alt={item.title} className="w-full h-full object-cover" />
+          <ClickableImage src={item.previewImageUrl} alt={item.title} className="w-full h-full object-cover" />
         ) : (
           <div className="flex flex-col items-center gap-2 text-[var(--color-text-muted)]">
             <span className="text-4xl">📄</span>

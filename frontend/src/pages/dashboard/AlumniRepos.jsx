@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import alumniRepoService from '../../services/alumniRepo.service';
 import companyInfoService from '../../services/companyInfo.service';
+import ClickableImage from '../../components/shared/ClickableImage';
 
 export default function AlumniRepos() {
   const [alumni, setAlumni]         = useState([]);
@@ -100,7 +101,7 @@ export default function AlumniRepos() {
                   <div className="flex items-start gap-4 mb-4">
                     <div className="w-14 h-14 rounded-2xl bg-[var(--color-accent)]/10 border border-[var(--color-border)] text-[var(--color-accent)] font-bold text-lg flex items-center justify-center flex-shrink-0 overflow-hidden">
                       {alum.profileImage ? (
-                        <img src={alum.profileImage} alt={alum.name} className="w-full h-full object-cover" />
+                        <ClickableImage src={alum.profileImage} alt={alum.name} className="w-full h-full object-cover" />
                       ) : (
                         alum.name?.charAt(0) || '🎓'
                       )}

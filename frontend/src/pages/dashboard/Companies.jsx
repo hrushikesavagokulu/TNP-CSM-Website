@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import companyInfoService from '../../services/companyInfo.service';
 import ContentBlockRenderer from '../../components/shared/ContentBlockRenderer';
+import ClickableImage from '../../components/shared/ClickableImage';
 
 const STATUS_TABS = [
   { id: 'completed', label: 'Completed Drives' },
@@ -418,7 +419,7 @@ export default function Companies() {
                         <div key={alum._id} className="p-3 border border-[var(--color-border)] rounded-xl bg-[var(--color-bg-secondary)]/30 flex items-start gap-3">
                           <div className="w-10 h-10 rounded-full bg-[var(--color-accent)]/10 text-[var(--color-accent)] font-bold text-sm flex items-center justify-center flex-shrink-0">
                             {alum.profileImage ? (
-                              <img src={alum.profileImage} alt={alum.name} className="w-full h-full rounded-full object-cover" />
+                              <ClickableImage src={alum.profileImage} alt={alum.name} className="w-full h-full rounded-full object-cover" />
                             ) : (
                               alum.name?.charAt(0) || '🎓'
                             )}

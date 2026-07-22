@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import departmentInfoService from '../../services/admin/departmentInfo.service';
 import FileUploader from '../../components/shared/FileUploader';
+import ClickableImage from '../../components/shared/ClickableImage';
 import api from '../../services/api';
 
 // ─── Inline Faculty Edit Modal ────────────────────────────────────────────────
@@ -97,7 +98,7 @@ function FacultyEditModal({ faculty, onClose, onSaved }) {
           <div className="flex items-center gap-4 p-4 rounded-xl bg-[var(--color-bg-secondary)]/40 border border-[var(--color-border)]">
             <div className="relative flex-shrink-0">
               {form.imageUrl ? (
-                <img src={form.imageUrl} alt={form.name} className="w-20 h-20 rounded-full object-cover border-2 border-[var(--color-accent)]" />
+                <ClickableImage src={form.imageUrl} alt={form.name} className="w-20 h-20 rounded-full object-cover border-2 border-[var(--color-accent)]" />
               ) : (
                 <div className="w-20 h-20 rounded-full bg-gradient-to-br from-red-500/20 to-red-600/30 flex items-center justify-center text-2xl font-black text-red-500 border-2 border-[var(--color-border)]">
                   {form.name?.charAt(0)?.toUpperCase() || '?'}
@@ -425,7 +426,7 @@ export default function ManageDepartmentInfo() {
           {heroUrl && (
             <div>
               <span className="text-[10px] font-bold text-[var(--color-text-muted)] block mb-1.5">Active Banner Preview:</span>
-              <img src={heroUrl} alt="Banner Preview" className="w-full h-28 object-cover rounded-xl border border-[var(--color-border)]" />
+              <ClickableImage src={heroUrl} alt="Banner Preview" className="w-full h-28 object-cover rounded-xl border border-[var(--color-border)]" />
               <button
                 type="button"
                 className="mt-2 text-[10px] text-red-400 font-bold hover:underline"
@@ -499,7 +500,7 @@ export default function ManageDepartmentInfo() {
                 <label className="text-[10px] text-[var(--color-text-secondary)] font-bold block mb-1">Profile Photo</label>
                 <div className="flex items-center gap-3">
                   {facForm.imageUrl ? (
-                    <img src={facForm.imageUrl} alt="Preview" className="w-10 h-10 rounded-full object-cover border-2 border-[var(--color-accent)] flex-shrink-0" />
+                    <ClickableImage src={facForm.imageUrl} alt="Preview" className="w-10 h-10 rounded-full object-cover border-2 border-[var(--color-accent)] flex-shrink-0" />
                   ) : (
                     <div className="w-10 h-10 rounded-full bg-[var(--color-bg-secondary)] border border-[var(--color-border)] flex items-center justify-center text-[var(--color-text-muted)] text-xs flex-shrink-0">👤</div>
                   )}
@@ -555,7 +556,7 @@ export default function ManageDepartmentInfo() {
                     <tr key={fac._id} className="hover:bg-[var(--color-bg-secondary)]/20 transition-colors">
                       <td className="p-3 text-center">
                         {fac.imageUrl ? (
-                          <img src={fac.imageUrl} alt={fac.name} className="w-9 h-9 rounded-full object-cover border border-[var(--color-border)] mx-auto" />
+                          <ClickableImage src={fac.imageUrl} alt={fac.name} className="w-9 h-9 rounded-full object-cover border border-[var(--color-border)] mx-auto" />
                         ) : (
                           <div className="w-9 h-9 rounded-full bg-red-500/10 text-red-500 flex items-center justify-center font-black text-sm mx-auto">
                             {fac.name?.charAt(0)?.toUpperCase() || '?'}

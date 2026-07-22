@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import ClickableImage from '../shared/ClickableImage';
 import useSocket from '../../hooks/useSocket';
 
 /**
@@ -137,7 +138,7 @@ export default function MessageStream({
                       {msg.attachments.map((att, idx) => (
                         <div key={idx}>
                           {att.type === 'image' ? (
-                            <img src={att.url} alt="Attachment" className="max-w-[240px] max-h-[200px] object-cover rounded-xl border border-[var(--color-border)]" />
+                            <ClickableImage src={att.url} alt="Attachment" className="max-w-[240px] max-h-[200px] object-cover rounded-xl border border-[var(--color-border)]" />
                           ) : (
                             <a
                               href={att.url}

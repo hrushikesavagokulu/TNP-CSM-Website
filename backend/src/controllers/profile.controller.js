@@ -47,8 +47,11 @@ const getProfileByRollNo = asyncHandler(async (req, res) => {
     // Peer viewing another student profile: hide private contact numbers & certifications
     responseData.phone = 'Private';
     responseData.parentPhone = 'Private';
-    if (responseData.isPhotoHidden) {
+
+    // If profileImageIsPublic is false (default), hide the photo from peers
+    if (!responseData.profileImageIsPublic) {
       responseData.profileImage = null;
+      responseData.isPhotoHidden = true;
     }
     responseData.achievements = []; // Hides certifications for peer students
 
@@ -78,7 +81,7 @@ const updateMe = asyncHandler(async (req, res) => {
   const allowedFields = [
     'phone', 'parentPhone', 'branch', 'isHostel',
     'laptopAvailable', 'mncOrHigherEd', 'skills',
-    'links', 'projectLinks', 'profileImage', 'achievements'
+    'links', 'projectLinks', 'profileImage', 'profileImageIsPublic', 'achievements'
   ];
 
   const filteredUpdates = {};

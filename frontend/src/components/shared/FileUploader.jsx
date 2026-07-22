@@ -1,5 +1,6 @@
 import { useState, useRef } from 'react';
 import api from '../../services/api';
+import ClickableImage from './ClickableImage';
 
 /**
  * FileUploader — Universal drag/drop & file uploader component.
@@ -97,7 +98,7 @@ export default function FileUploader({
         <div className="flex items-center justify-between p-2 rounded-xl bg-[var(--color-surface)] border border-[var(--color-border)] text-xs">
           <div className="flex items-center gap-2 truncate">
             {currentUrl.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
-              <img src={currentUrl} alt="Uploaded" className="w-8 h-8 rounded-lg object-cover border" />
+              <ClickableImage src={currentUrl} alt="Uploaded" className="w-8 h-8 rounded-lg object-cover border" />
             ) : (
               <span className="text-lg">📄</span>
             )}

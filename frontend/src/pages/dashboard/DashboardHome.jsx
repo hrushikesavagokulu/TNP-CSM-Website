@@ -2,6 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import ProgressRing from '../../components/shared/ProgressRing';
 import SearchStudents from '../../components/shared/SearchStudents';
+import ClickableImage from '../../components/shared/ClickableImage';
 
 // Tiles: set `path` to enable navigation; omit or set to null for "Coming Soon" stubs
 const TILES = [
@@ -49,7 +50,7 @@ export default function DashboardHome() {
         {/* User profile photo */}
         <div className="w-20 h-20 rounded-full bg-[var(--color-bg-secondary)] border border-[var(--color-border)] overflow-hidden flex-shrink-0 flex items-center justify-center">
           {user?.profileImage ? (
-            <img src={user.profileImage} alt={user.name} className="w-full h-full object-cover" />
+            <ClickableImage src={user.profileImage} alt={user.name} className="w-full h-full object-cover" />
           ) : (
             <span className="text-2xl font-bold text-[var(--color-text-muted)]">
               {user?.name?.slice(0, 2).toUpperCase()}

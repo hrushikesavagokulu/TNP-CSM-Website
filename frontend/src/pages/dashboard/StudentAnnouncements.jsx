@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import AnnouncementGroupList from '../../components/announcements/AnnouncementGroupList';
 import announcementService from '../../services/announcement.service';
+import ClickableImage from '../../components/shared/ClickableImage';
 
 // ── Announcement Card ─────────────────────────────────────────────────────────
 function AnnouncementCard({ ann, onRead, onImageClick }) {
@@ -61,13 +62,8 @@ function AnnouncementCard({ ann, onRead, onImageClick }) {
                       <div 
                         key={i} 
                         className="ann-media-thumbnail"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onImageClick(att.url);
-                        }}
                       >
-                        <img src={att.url} alt={att.filename || 'Attachment'} />
-                        <div className="ann-media-overlay">🔍 Click to zoom</div>
+                        <ClickableImage src={att.url} alt={att.filename || 'Attachment'} />
                       </div>
                     ))}
                 </div>

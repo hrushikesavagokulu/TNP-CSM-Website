@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import adminAlumniRepoService from '../../services/admin/alumniRepos.service';
 import adminCompanyService from '../../services/admin/companies.service';
 import FileUploader from '../../components/shared/FileUploader';
+import ClickableImage from '../../components/shared/ClickableImage';
 
 function AlumnusForm({ initial, companies, onSave, onCancel }) {
   const [name,             setName]             = useState(initial?.name || '');
@@ -261,7 +262,7 @@ export default function ManageAlumniRepos() {
               <div key={alum._id} className="p-4 border border-[var(--color-border)] rounded-xl flex items-center justify-between gap-4 bg-[var(--color-surface)]">
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-[var(--color-accent)]/10 text-[var(--color-accent)] font-bold text-sm flex items-center justify-center flex-shrink-0 overflow-hidden">
-                    {alum.profileImage ? <img src={alum.profileImage} alt={alum.name} className="w-full h-full object-cover" /> : alum.name?.charAt(0) || '🎓'}
+                    {alum.profileImage ? <ClickableImage src={alum.profileImage} alt={alum.name} className="w-full h-full object-cover" /> : alum.name?.charAt(0) || '🎓'}
                   </div>
                   <div>
                     <h4 className="text-sm font-bold text-[var(--color-text-primary)]">{alum.name}</h4>

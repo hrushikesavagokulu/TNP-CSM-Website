@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import publicService from '../../services/public.service';
 import Footer from '../../components/layout/Footer';
+import ClickableImage from '../../components/shared/ClickableImage';
 
 // Static laboratory configuration details
 const LABS_LIST = [
@@ -191,7 +192,7 @@ export default function Home() {
                           {/* Profile Header Row with Photo */}
                           <div className="flex items-center gap-3">
                             {fac.imageUrl ? (
-                              <img
+                              <ClickableImage
                                 src={fac.imageUrl}
                                 alt={fac.name}
                                 className="w-12 h-12 rounded-full object-cover border-2 border-[var(--color-border)] shadow-sm"
@@ -330,7 +331,7 @@ export default function Home() {
             {/* Left side profile photo */}
             <div className="md:w-2/5 bg-[var(--color-bg-secondary)]/30 p-6 flex flex-col items-center justify-center border-b md:border-b-0 md:border-r border-[var(--color-border)]/50 min-h-[220px]">
               {selectedFaculty.imageUrl ? (
-                <img
+                <ClickableImage
                   src={selectedFaculty.imageUrl}
                   alt={selectedFaculty.name}
                   className="w-32 h-32 md:w-36 md:h-36 rounded-full object-cover border-4 border-[var(--color-surface)] shadow-md"
