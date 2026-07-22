@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import dsaService from '../../services/dsa.service';
+import { useAuth } from '../../context/AuthContext';
 
 const DIFFICULTIES = ['all', 'easy', 'medium', 'hard'];
 const SOURCES = ['all', 'leetcode', 'gfg', 'codeforces', 'cses', 'hackerrank', 'other'];
@@ -10,14 +11,21 @@ const PROGRAMMING_FLAT_TOPICS = [
   'Sorting', 'Bit Manipulation', 'Hashing', 'Stack'
 ];
 
+const POPULAR_COMPANIES = ['Google', 'Amazon', 'Microsoft', 'Meta', 'Flipkart', 'Adobe', 'Uber'];
+const POPULAR_PATTERNS = ['Sliding Window', 'Two Pointers', 'Monotonic Stack', 'Binary Search on Answer', 'Union-Find/DSU', 'DP (1D)'];
+
 export default function ProgrammingDsa() {
+  const { user } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
 
   // Track state driven by URL query param
-  const activeTrack = searchParams.get('track') === 'programming' ? 'programming' : 'dsa';
-  const activeTopic = searchParams.get('topic') || 'all';
-  const activeDiff  = searchParams.get('difficulty') || 'all';
-  const activeSource = searchParams.get('source') || 'all';
+  const activeTrack   = searchParams.get('track') === 'programming' ? 'programming' : 'dsa';
+  const activeTopic   = searchParams.get('topic') || 'all';
+  const activeDiff    = searchParams.get('difficulty') || 'all';
+  const activeSource  = searchParams.get('source') || 'all';
+  const activeStatus  = searchParams.get('status') || 'all'; // 'all', 'solved', 'starred', 'revision'
+  const activeCompany = searchParams.get('company') || 'all';
+  const activePattern = searchParams.get('pattern') || 'all';
 
   const [topics, setTopics]           = useState([]);
   const [trackTotals, setTrackTotals] = useState({ dsa: 0, programming: 0, total: 0 });
@@ -29,6 +37,27 @@ export default function ProgrammingDsa() {
 
   const [loading, setLoading]         = useState(false);
   const [error, setError]             = useState(null);
+
+  // User Local Progress Storage (Solved, Starred, Revision)
+  const userId = user?.rollNo || user?._id || 'guest';
+  const storageKey = `tnp_dsa_progress_${userId}`;
+
+  const [progressData, setProgressData] = useState(() => {
+    try {
+      const saved = localStorage.getItem(storageKey);
+      return saved ? JSON.parse(saved) : { solved: [], starred: [], revision: [] };
+    } catch {
+      return { solved: [], starred: [], revision: [] };
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(storageKey, JSON.stringify(progressData));
+    } catch (e) {
+      console.error('Failed to save DSA progress:', e);
+    }
+  }, [progressData, storageKey]);
 
   // Update query params helper
   const updateParams = (newParams) => {
@@ -67,18 +96,30 @@ export default function ProgrammingDsa() {
         topic: activeTopic !== 'all' ? activeTopic : undefined,
         difficulty: activeDiff !== 'all' ? activeDiff : undefined,
         source: activeSource !== 'all' ? activeSource : undefined,
-        search: search.trim() || undefined,
+        search: (search || activeCompany !== 'all' ? activeCompany : activePattern !== 'all' ? activePattern : '').trim() || undefined,
         page,
         limit: 50,
       });
-      setProblems(data?.problems || []);
+      
+      let fetched = data?.problems || [];
+
+      // Filter by progress status if selected
+      if (activeStatus === 'solved') {
+        fetched = fetched.filter(p => progressData.solved.includes(p._id) || progressData.solved.includes(p.slugId));
+      } else if (activeStatus === 'starred') {
+        fetched = fetched.filter(p => progressData.starred.includes(p._id) || progressData.starred.includes(p.slugId));
+      } else if (activeStatus === 'revision') {
+        fetched = fetched.filter(p => progressData.revision.includes(p._id) || progressData.revision.includes(p.slugId));
+      }
+
+      setProblems(fetched);
       setPagination(data?.pagination || { page: 1, limit: 50, total: 0, pages: 1 });
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to load practice problems.');
     } finally {
       setLoading(false);
     }
-  }, [activeTrack, activeTopic, activeDiff, activeSource, search, page]);
+  }, [activeTrack, activeTopic, activeDiff, activeSource, activeStatus, activeCompany, activePattern, search, page, progressData]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -86,6 +127,16 @@ export default function ProgrammingDsa() {
     }, 300);
     return () => clearTimeout(timer);
   }, [loadProblems]);
+
+  // Status Toggles
+  const toggleStatus = (id, key) => {
+    setProgressData((prev) => {
+      const list = prev[key] || [];
+      const exists = list.includes(id);
+      const updated = exists ? list.filter((x) => x !== id) : [...list, id];
+      return { ...prev, [key]: updated };
+    });
+  };
 
   // Filter topics for programming track vs DSA track taxonomy
   const visibleTopics = activeTrack === 'programming'
@@ -107,11 +158,18 @@ export default function ProgrammingDsa() {
     }
   };
 
+  // Stat metrics
+  const solvedCount   = progressData.solved.length;
+  const starredCount  = progressData.starred.length;
+  const revisionCount = progressData.revision.length;
+  const totalCount    = trackTotals.total || problems.length || 1;
+  const solvedPct     = Math.min(100, Math.round((solvedCount / totalCount) * 100));
+
   return (
     <div className="flex flex-col gap-8 animate-fade-in font-sans pb-16">
       
       {/* Page Header */}
-      <div className="border-b border-[var(--color-border)] pb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="border-b border-[var(--color-border)] pb-6 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6">
         <div>
           <div className="flex items-center gap-2 mb-1">
             <span className="font-mono text-xs font-bold text-[var(--color-accent)] uppercase tracking-widest">
@@ -122,11 +180,11 @@ export default function ProgrammingDsa() {
             Programming & Data Structures (DSA)
           </h1>
           <p className="text-xs text-[var(--color-text-muted)] mt-1">
-            Curated problem sets from Striver A2Z, NeetCode 150, Blind 75, GFG & HackerRank.
+            Master 700+ curated problems from Striver A2Z, NeetCode 150, Blind 75, GFG & HackerRank.
           </p>
         </div>
 
-        {/* Primary Track Segmented Control (Section 9 Spec) */}
+        {/* Primary Track Segmented Control */}
         <div className="inline-flex p-1 bg-[var(--color-surface-raised)] border border-[var(--color-border)] rounded-xl">
           <button
             onClick={() => updateParams({ track: 'dsa', topic: 'all' })}
@@ -158,11 +216,124 @@ export default function ProgrammingDsa() {
         </div>
       </div>
 
+      {/* User Progress Widget */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="glass-card p-4 flex items-center gap-4 border-l-4 border-[var(--color-accent)]">
+          <div className="w-12 h-12 rounded-full bg-[var(--color-accent-subtle)] border border-[var(--color-accent-border)] flex items-center justify-center font-mono font-bold text-sm text-[var(--color-accent)]">
+            {solvedPct}%
+          </div>
+          <div>
+            <div className="text-[10px] font-mono font-bold text-[var(--color-text-muted)] uppercase tracking-wider">Solved Progress</div>
+            <div className="text-lg font-display font-extrabold text-[var(--color-text-primary)]">{solvedCount} <span className="text-xs text-[var(--color-text-muted)] font-normal">/ {totalCount}</span></div>
+          </div>
+        </div>
+
+        <div className="glass-card p-4 flex items-center gap-4 border-l-4 border-emerald-500">
+          <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center text-lg">
+            ✅
+          </div>
+          <div>
+            <div className="text-[10px] font-mono font-bold text-[var(--color-text-muted)] uppercase tracking-wider">Status Solved</div>
+            <div className="text-lg font-display font-extrabold text-[var(--color-text-primary)]">{solvedCount} Problems</div>
+          </div>
+        </div>
+
+        <div className="glass-card p-4 flex items-center gap-4 border-l-4 border-amber-500">
+          <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center text-lg">
+            ⭐
+          </div>
+          <div>
+            <div className="text-[10px] font-mono font-bold text-[var(--color-text-muted)] uppercase tracking-wider">Starred Favorites</div>
+            <div className="text-lg font-display font-extrabold text-[var(--color-text-primary)]">{starredCount} Saved</div>
+          </div>
+        </div>
+
+        <div className="glass-card p-4 flex items-center gap-4 border-l-4 border-rose-500">
+          <div className="w-10 h-10 rounded-xl bg-rose-500/10 text-rose-500 flex items-center justify-center text-lg">
+            🔄
+          </div>
+          <div>
+            <div className="text-[10px] font-mono font-bold text-[var(--color-text-muted)] uppercase tracking-wider">Revision Flagged</div>
+            <div className="text-lg font-display font-extrabold text-[var(--color-text-primary)]">{revisionCount} Flagged</div>
+          </div>
+        </div>
+      </div>
+
       {error && (
         <div className="glass-card p-4 border border-[var(--color-danger)]/30 bg-[var(--color-danger-bg)] text-xs text-[var(--color-danger)]">
           ⚠️ {error}
         </div>
       )}
+
+      {/* Status Tabs: All, Solved, Starred, Revision */}
+      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[var(--color-border)] pb-2">
+        <div className="flex items-center gap-1 font-mono text-xs">
+          <button
+            onClick={() => updateParams({ status: 'all' })}
+            className={`px-3 py-1.5 rounded-lg font-bold transition-all border ${
+              activeStatus === 'all'
+                ? 'bg-[var(--color-accent)] text-[var(--color-text-inverse)] border-[var(--color-accent)]'
+                : 'bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]'
+            }`}
+          >
+            All Problems
+          </button>
+          <button
+            onClick={() => updateParams({ status: 'solved' })}
+            className={`px-3 py-1.5 rounded-lg font-bold transition-all border flex items-center gap-1.5 ${
+              activeStatus === 'solved'
+                ? 'bg-emerald-600 text-white border-emerald-600'
+                : 'bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]'
+            }`}
+          >
+            <span>Solved</span>
+            <span className="text-[10px] px-1.5 rounded-full bg-black/20">{solvedCount}</span>
+          </button>
+          <button
+            onClick={() => updateParams({ status: 'starred' })}
+            className={`px-3 py-1.5 rounded-lg font-bold transition-all border flex items-center gap-1.5 ${
+              activeStatus === 'starred'
+                ? 'bg-amber-500 text-white border-amber-500'
+                : 'bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]'
+            }`}
+          >
+            <span>Starred ⭐</span>
+            <span className="text-[10px] px-1.5 rounded-full bg-black/20">{starredCount}</span>
+          </button>
+          <button
+            onClick={() => updateParams({ status: 'revision' })}
+            className={`px-3 py-1.5 rounded-lg font-bold transition-all border flex items-center gap-1.5 ${
+              activeStatus === 'revision'
+                ? 'bg-rose-600 text-white border-rose-600'
+                : 'bg-[var(--color-surface)] border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]'
+            }`}
+          >
+            <span>Revision 🔄</span>
+            <span className="text-[10px] px-1.5 rounded-full bg-black/20">{revisionCount}</span>
+          </button>
+        </div>
+
+        {/* Company & Pattern Cloud Filters */}
+        <div className="flex flex-wrap items-center gap-2">
+          <select
+            value={activeCompany}
+            onChange={(e) => updateParams({ company: e.target.value })}
+            className="px-2.5 py-1 border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-primary)] rounded-lg text-xs font-mono"
+          >
+            <option value="all">Company: All</option>
+            {POPULAR_COMPANIES.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+
+          <select
+            value={activePattern}
+            onChange={(e) => updateParams({ pattern: e.target.value })}
+            className="px-2.5 py-1 border border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-primary)] rounded-lg text-xs font-mono"
+          >
+            <option value="all">Pattern: All</option>
+            {POPULAR_PATTERNS.map(p => <option key={p} value={p}>{p}</option>)}
+          </select>
+        </div>
+      </div>
 
       {/* Topics Carousel / Tag Bar */}
       <div className="flex flex-col gap-3">
@@ -291,12 +462,12 @@ export default function ProgrammingDsa() {
           <table className="w-full border-collapse text-left text-xs text-[var(--color-text-secondary)]">
             <thead>
               <tr className="border-b border-[var(--color-border)] bg-[var(--color-bg-secondary)] text-[var(--color-text-muted)] font-mono text-[10px] uppercase tracking-wide sticky top-0 z-10">
-                <th className="p-4 w-12">#</th>
+                <th className="p-4 w-12 text-center">Status</th>
                 <th className="p-4">Problem Title & Metadata</th>
                 <th className="p-4 w-36">Topic & Pattern</th>
                 <th className="p-4 w-28 text-center">Difficulty</th>
                 <th className="p-4 w-28 text-center">Platform</th>
-                <th className="p-4 w-28 text-center">Action</th>
+                <th className="p-4 w-36 text-center">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--color-border)]/60 bg-[var(--color-surface)]">
@@ -307,67 +478,124 @@ export default function ProgrammingDsa() {
                   </td>
                 </tr>
               ) : problems.length > 0 ? (
-                problems.map((p, idx) => (
-                  <tr key={p._id} className="hover:bg-[var(--color-surface-raised)] transition-colors">
-                    <td className="p-4 font-mono font-bold text-[var(--color-text-muted)]">
-                      {(page - 1) * pagination.limit + idx + 1}
-                    </td>
-                    <td className="p-4">
-                      <div className="flex flex-col gap-1">
-                        <span className="font-bold text-[var(--color-text-primary)] hover:text-[var(--color-accent)] transition-colors text-xs">
-                          {p.title}
-                        </span>
-                        
-                        {/* Company Tags & Sheet References */}
-                        <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
-                          {p.sheetRefs?.map((sheet) => (
-                            <span key={sheet} className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-[var(--color-accent-subtle)] text-[var(--color-accent)] font-bold">
-                              #{sheet}
-                            </span>
-                          ))}
-                          {p.companies?.map((comp) => (
-                            <span key={comp} className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-[var(--color-surface-raised)] text-[var(--color-text-muted)] border border-[var(--color-border)]">
-                              🏢 {comp}
-                            </span>
-                          ))}
+                problems.map((p, idx) => {
+                  const isSolved   = progressData.solved.includes(p._id) || progressData.solved.includes(p.slugId);
+                  const isStarred  = progressData.starred.includes(p._id) || progressData.starred.includes(p.slugId);
+                  const isRevision = progressData.revision.includes(p._id) || progressData.revision.includes(p.slugId);
+
+                  return (
+                    <tr key={p._id} className="hover:bg-[var(--color-surface-raised)] transition-colors">
+                      {/* Solved Checkbox */}
+                      <td className="p-4 text-center">
+                        <button
+                          onClick={() => toggleStatus(p._id, 'solved')}
+                          title={isSolved ? 'Mark Unsolved' : 'Mark Solved'}
+                          className={`w-6 h-6 rounded-full font-mono text-xs flex items-center justify-center transition-all border ${
+                            isSolved
+                              ? 'bg-emerald-500 text-white border-emerald-500'
+                              : 'border-[var(--color-border)] text-[var(--color-text-muted)] hover:border-[var(--color-accent)]'
+                          }`}
+                        >
+                          {isSolved ? '✓' : idx + 1}
+                        </button>
+                      </td>
+
+                      {/* Title & Metadata */}
+                      <td className="p-4">
+                        <div className="flex flex-col gap-1">
+                          <div className="flex items-center gap-2">
+                            <a
+                              href={p.link}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="font-bold text-[var(--color-text-primary)] hover:text-[var(--color-accent)] transition-colors text-xs no-underline"
+                            >
+                              {p.title} ↗
+                            </a>
+                            {isStarred && <span className="text-amber-500 text-xs">⭐</span>}
+                            {isRevision && <span className="text-rose-500 text-[10px] font-mono font-bold px-1 bg-rose-500/10 rounded">REV</span>}
+                          </div>
+                          
+                          {/* Company Tags & Sheet References */}
+                          <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
+                            {p.sheetRefs?.map((sheet) => (
+                              <span key={sheet} className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-[var(--color-accent-subtle)] text-[var(--color-accent)] font-bold">
+                                #{sheet}
+                              </span>
+                            ))}
+                            {p.companies?.map((comp) => (
+                              <span key={comp} className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-[var(--color-surface-raised)] text-[var(--color-text-muted)] border border-[var(--color-border)]">
+                                🏢 {comp}
+                              </span>
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                    </td>
-                    <td className="p-4">
-                      <div className="flex flex-col gap-1">
-                        <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] border border-[var(--color-border)] w-fit">
-                          {p.topic}
-                        </span>
-                        {p.patterns?.length > 0 && p.patterns[0] !== p.topic && (
-                          <span className="text-[9px] font-mono text-[var(--color-text-muted)]">
-                            Pattern: {p.patterns.join(', ')}
+                      </td>
+
+                      {/* Topic & Pattern */}
+                      <td className="p-4">
+                        <div className="flex flex-col gap-1">
+                          <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-[var(--color-bg-secondary)] text-[var(--color-text-primary)] border border-[var(--color-border)] w-fit">
+                            {p.topic}
                           </span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="p-4 text-center">
-                      <span className={`text-[10px] font-mono font-bold uppercase px-2.5 py-0.5 rounded border ${getDiffColor(p.difficulty)}`}>
-                        {p.difficulty}
-                      </span>
-                    </td>
-                    <td className="p-4 text-center">
-                      <span className="text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded bg-[var(--color-accent-subtle)] text-[var(--color-accent)]">
-                        {p.source}
-                      </span>
-                    </td>
-                    <td className="p-4 text-center">
-                      <a
-                        href={p.link}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 px-3 py-1.5 bg-[var(--color-accent)] text-[var(--color-text-inverse)] text-[10px] font-mono font-bold rounded-lg hover:bg-[var(--color-accent-hover)] transition-all no-underline"
-                      >
-                        <span>Solve</span>
-                        <span>↗</span>
-                      </a>
-                    </td>
-                  </tr>
-                ))
+                          {p.patterns?.length > 0 && p.patterns[0] !== p.topic && (
+                            <span className="text-[9px] font-mono text-[var(--color-text-muted)]">
+                              {p.patterns.join(', ')}
+                            </span>
+                          )}
+                        </div>
+                      </td>
+
+                      {/* Difficulty */}
+                      <td className="p-4 text-center">
+                        <span className={`text-[10px] font-mono font-bold uppercase px-2.5 py-0.5 rounded border ${getDiffColor(p.difficulty)}`}>
+                          {p.difficulty}
+                        </span>
+                      </td>
+
+                      {/* Platform */}
+                      <td className="p-4 text-center">
+                        <span className="text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded bg-[var(--color-accent-subtle)] text-[var(--color-accent)]">
+                          {p.source}
+                        </span>
+                      </td>
+
+                      {/* Actions */}
+                      <td className="p-4 text-center">
+                        <div className="flex items-center justify-center gap-1.5">
+                          {/* Direct External Solve Button */}
+                          <a
+                            href={p.link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-3 py-1.5 bg-[var(--color-accent)] text-[var(--color-text-inverse)] text-[10px] font-mono font-bold rounded-lg hover:bg-[var(--color-accent-hover)] transition-all no-underline"
+                            title="Open Problem on Official Platform"
+                          >
+                            Solve ↗
+                          </a>
+
+                          {/* Star Toggle */}
+                          <button
+                            onClick={() => toggleStatus(p._id, 'starred')}
+                            className={`p-1.5 rounded-lg border text-[10px] ${isStarred ? 'bg-amber-500/20 text-amber-500 border-amber-500/40' : 'border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-amber-500'}`}
+                            title="Star Favorite"
+                          >
+                            ⭐
+                          </button>
+
+                          {/* Revision Toggle */}
+                          <button
+                            onClick={() => toggleStatus(p._id, 'revision')}
+                            className={`p-1.5 rounded-lg border text-[10px] ${isRevision ? 'bg-rose-500/20 text-rose-500 border-rose-500/40' : 'border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-rose-500'}`}
+                            title="Flag for Revision"
+                          >
+                            🔄
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               ) : (
                 <tr>
                   <td colSpan={6} className="p-12 text-center font-mono text-xs text-[var(--color-text-muted)] italic">
