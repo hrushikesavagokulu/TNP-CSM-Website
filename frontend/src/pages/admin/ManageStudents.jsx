@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import studentsService from '../../services/admin/students.service';
+import academicTransitionService from '../../services/admin/academicTransition.service';
 import FileUploader from '../../components/shared/FileUploader';
 
 const BATCH_TYPES = ['Regular', 'MNC', 'Higher Ed'];
@@ -275,16 +276,58 @@ export default function ManageStudents() {
                     <td className="p-4 font-mono font-semibold">{student.branch || 'CSM'}</td>
                     
                     <td className="p-4">
-                      <select
-                        value={student.year || ''}
-                        onChange={(e) => handleUpdateStudent(student._id, 'year', Number(e.target.value))}
-                        className="bg-transparent border border-transparent hover:border-[var(--color-border)] px-2 py-1 rounded text-xs font-mono text-[var(--color-text-primary)] focus:outline-none"
-                      >
-                        <option value="">Select</option>
-                        {[1, 2, 3, 4].map((y) => (
-                          <option key={y} value={y}>Year {y}</option>
-                        ))}
-                      </select>
+                      <div className="flex items-center gap-1.5 font-mono">
+                        <select
+                          value={student.year || ''}
+                          onChange={(e) => handleUpdateStudent(student._id, 'year', Number(e.target.value))}
+                          className="bg-transparent border border-transparent hover:border-[var(--color-border)] px-1.5 py-1 rounded text-xs font-mono text-[var(--color-text-primary)] focus:outline-none"
+                        >
+                          <option value="">Select</option>
+                          {[1, 2, 3, 4].map((y) => (
+                            <option key={y} value={y}>Year {y}</option>
+                          ))}
+                        </select>
+
+                        {student.academicStatus === 'graduated_grace' ? (
+                          <span
+                            className="px-2 py-0.5 rounded text-[9px] font-bold bg-amber-500/10 text-amber-500 border border-amber-500/30"
+                            title={`Graduated ${new Date(student.graduatedAt).toLocaleDateString()}. Grace period active.`}
+                          >
+                            Graduated 🎓
+                          </span>
+                        ) : (
+                          <div className="flex items-center gap-1">
+                            <button
+                              onClick={async () => {
+                                try {
+                                  await academicTransitionService.adjustStudentYear(student._id, 'decrement');
+                                  loadStudents();
+                                } catch (err) {
+                                  alert(err.response?.data?.message || 'Year decrement failed.');
+                                }
+                              }}
+                              className="px-1.5 py-0.5 rounded border border-[var(--color-border)] hover:bg-[var(--color-surface-raised)] text-[10px] font-bold"
+                              title="Decrement Academic Year (-1)"
+                            >
+                              -1
+                            </button>
+                            <button
+                              onClick={async () => {
+                                try {
+                                  await academicTransitionService.adjustStudentYear(student._id, 'increment');
+                                  loadStudents();
+                                } catch (err) {
+                                  alert(err.response?.data?.message || 'Year increment failed.');
+                                }
+                              }}
+                              className="px-1.5 py-0.5 rounded border border-[var(--color-border)] hover:bg-[var(--color-surface-raised)] text-[10px] font-bold text-[var(--color-accent)]"
+                              title="Increment Academic Year (+1)"
+                            >
+                              +1
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </td>
 
                     <td className="p-4">

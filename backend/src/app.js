@@ -11,6 +11,9 @@ const errorHandler   = require('./middleware/errorHandler.middleware');
 
 const app = express();
 
+// Trust proxy for rate limiting behind nginx / docker
+app.set('trust proxy', 1);
+
 // ── Middleware chain (order matters) ─────────────────────────────────────────
 
 // 1. CORS — must be first so preflight OPTIONS requests are handled correctly

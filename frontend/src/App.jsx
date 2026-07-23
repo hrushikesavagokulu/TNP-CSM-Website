@@ -49,6 +49,10 @@ import Achievements      from './pages/dashboard/Achievements';
 import ProgrammingDsa    from './pages/dashboard/ProgrammingDsa';
 import ManageProgrammingDsa from './pages/admin/ManageProgrammingDsa';
 
+// Event Certificate Collection Pages
+import ManageEvents       from './pages/admin/ManageEvents';
+import SubmitCertificates from './pages/public/SubmitCertificates';
+
 // ── Shared Public Layout (displays main Navbar) ──────────────────────────────
 function PublicLayout() {
   return (
@@ -76,6 +80,7 @@ export default function App() {
               <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
               <Route path="/forgot-password" element={<PublicRoute><ForgotPassword /></PublicRoute>} />
               <Route path="/admin/login" element={<PublicRoute><AdminLogin /></PublicRoute>} />
+              <Route path="/events/submit/:shareableSlug" element={<SubmitCertificates />} />
             </Route>
 
             {/* Protected Dashboard Routes (with DashboardLayout + Sidebar) */}
@@ -96,7 +101,8 @@ export default function App() {
               <Route path="dsa" element={<ProgrammingDsa />} />
               <Route path="connect-sphere" element={<ConnectSphere />} />
               <Route path="chat" element={<ConnectSphere />} />
-              
+              <Route path="events" element={<SubmitCertificates />} />
+
               {/* Catch-all stubs for features not yet built */}
               <Route path="*" element={
                 <div className="min-h-[calc(100vh-8rem)] flex items-center justify-center">
@@ -128,6 +134,7 @@ export default function App() {
               <Route path="dsa" element={<ManageProgrammingDsa />} />
               <Route path="connect-sphere" element={<ManageConnectSphere />} />
               <Route path="chat" element={<ManageConnectSphere />} />
+              <Route path="events" element={<ManageEvents />} />
 
               {/* Catch-all stubs for future admin features */}
               <Route path="*" element={

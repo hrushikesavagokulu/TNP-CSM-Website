@@ -16,6 +16,7 @@ const { initSockets } = require('./src/sockets');
 const { startExpireAnnouncementsCron } = require('./src/jobs/expireAnnouncements.cron');
 const { startExpireAchievementsCron } = require('./src/jobs/expireAchievements.cron');
 const { startExpireEventsCron } = require('./src/jobs/expireEvents.cron');
+const { startExpireGraduatedStudentsCron } = require('./src/jobs/expireGraduatedStudents.cron');
 
 const PORT = process.env.PORT || 5000;
 
@@ -41,6 +42,7 @@ app.set('io', io);
     startExpireAnnouncementsCron();
     startExpireAchievementsCron();
     startExpireEventsCron();
+    startExpireGraduatedStudentsCron();
 
     server.listen(PORT, () => {
       console.log(`[Server] TMP backend listening on port ${PORT}`);

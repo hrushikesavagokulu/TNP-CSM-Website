@@ -15,6 +15,7 @@ const ADMIN_NAV_ITEMS = [
   { path: '/admin/learning-resources', label: 'Learning Resources', icon: 'M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z' },
   { path: '/admin/resume-guide', label: 'Resume Guide', icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z' },
   { path: '/admin/programming-dsa', label: 'Programming & DSA', icon: 'M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4' },
+  { path: '/admin/events', label: 'Events & Certificates', icon: 'M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z' },
   { path: '/admin/connect-sphere', label: 'Connect Sphere', icon: 'M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z' },
   { path: '/admin/department-info', label: 'Department Info', icon: 'M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z' },
 ];

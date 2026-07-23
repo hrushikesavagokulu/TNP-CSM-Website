@@ -64,6 +64,14 @@ const userSchema = new mongoose.Schema(
     role:         { type: String, enum: ['student', 'admin'], default: 'student' },
     isSuperAdmin: { type: Boolean, default: false },
     isActive:     { type: Boolean, default: true },
+    academicStatus: {
+      type: String,
+      enum: ['active', 'graduated_grace', 'archived'],
+      default: 'active',
+    },
+    isGraduated:          { type: Boolean, default: false },
+    graduatedAt:          { type: Date, default: null },
+    gracePeriodExpiresAt: { type: Date, default: null },
 
     // ── Profile ────────────────────────────────────────────────────────────
     profileImage:          { type: String, default: null },

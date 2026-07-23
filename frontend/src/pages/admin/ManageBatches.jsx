@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import batchesService from '../../services/admin/batches.service';
+import academicTransitionService from '../../services/admin/academicTransition.service';
 
 // ── Sub-component: MemberPanel (manage members of one batch) ──────────────────
 function MemberPanel({ batch, onClose, onMemberChange }) {
@@ -222,6 +223,13 @@ export default function ManageBatches() {
   const [createLoading, setCreateLoading] = useState(false);
   const [createError, setCreateError]   = useState('');
 
+  // Rollover Modal States
+  const [showRolloverModal, setShowRolloverModal] = useState(false);
+  const [rolloverPreview, setRolloverPreview] = useState(null);
+  const [previewLoading, setPreviewLoading]   = useState(false);
+  const [executeLoading, setExecuteLoading]   = useState(false);
+  const [rolloverSuccess, setRolloverSuccess] = useState('');
+
   const loadBatches = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -283,14 +291,59 @@ export default function ManageBatches() {
     }
   };
 
+  const handleOpenRolloverModal = async () => {
+    setShowRolloverModal(true);
+    setPreviewLoading(true);
+    setRolloverSuccess('');
+    try {
+      const previewData = await academicTransitionService.previewRollover();
+      setRolloverPreview(previewData?.data || null);
+    } catch (err) {
+      alert(err.response?.data?.message || 'Failed to generate rollover simulation preview.');
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
+  const handleExecuteRollover = async () => {
+    if (!window.confirm('Execute department-wide academic year rollover? All students will be promoted +1 year, Year 4s will transition to 6-month graduation grace period, and Year 3 batches will migrate to Year 4.')) {
+      return;
+    }
+
+    setExecuteLoading(true);
+    try {
+      const result = await academicTransitionService.executeRollover();
+      setRolloverSuccess(result?.message || 'Academic year rollover completed successfully!');
+      setRolloverPreview(null);
+      loadBatches();
+    } catch (err) {
+      alert(err.response?.data?.message || 'Rollover execution failed.');
+    } finally {
+      setExecuteLoading(false);
+    }
+  };
+
   return (
     <div className="manage-batches">
-      <div className="page-header">
+      <div className="page-header flex items-center justify-between">
         <div>
           <h1 className="page-title">Manage Batches</h1>
           <p className="page-subtitle">Create and manage placement batches for Year 3 &amp; Year 4 students.</p>
         </div>
+
+        <button
+          onClick={handleOpenRolloverModal}
+          className="px-4 py-2 bg-[var(--color-accent)] text-[var(--color-text-inverse)] text-xs font-mono font-bold rounded-xl hover:bg-[var(--color-accent-hover)] transition-all flex items-center gap-2 shadow-sm"
+        >
+          <span>🎓 Academic Year Rollover</span>
+        </button>
       </div>
+
+      {rolloverSuccess && (
+        <div className="mb-4 p-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-emerald-500 font-mono text-xs">
+          ✅ {rolloverSuccess}
+        </div>
+      )}
 
       {/* Year Toggle */}
       <div className="year-toggle">
@@ -417,6 +470,103 @@ export default function ManageBatches() {
           </div>
         )}
       </div>
+
+      {/* ACADEMIC ROLLOVER PREVIEW & EXECUTION MODAL */}
+      {showRolloverModal && (
+        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in font-mono text-xs">
+          <div className="w-full max-w-2xl bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl shadow-2xl overflow-hidden flex flex-col">
+            <div className="p-4 border-b border-[var(--color-border)] bg-[var(--color-bg-secondary)] flex items-center justify-between">
+              <h3 className="font-display text-sm font-bold text-[var(--color-text-primary)]">
+                🎓 Annual Academic Year Rollover Engine
+              </h3>
+              <button
+                onClick={() => setShowRolloverModal(false)}
+                className="text-xs font-mono text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)]"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="p-5 flex flex-col gap-5">
+              <p className="text-[var(--color-text-secondary)] leading-relaxed">
+                Executing a rollover promotes all active students by 1 academic year and migrates Year 3 placement batches to Year 4.
+              </p>
+
+              {previewLoading ? (
+                <div className="p-8 text-center text-[var(--color-text-muted)] italic">
+                  Generating dry-run simulation preview...
+                </div>
+              ) : rolloverPreview ? (
+                <div className="flex flex-col gap-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div className="p-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-secondary)]/50 flex flex-col items-center">
+                      <span className="text-[10px] text-[var(--color-text-muted)] uppercase font-bold">1st → 2nd Year</span>
+                      <span className="text-lg font-bold text-[var(--color-accent)]">{rolloverPreview.year1To2Count}</span>
+                    </div>
+
+                    <div className="p-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-secondary)]/50 flex flex-col items-center">
+                      <span className="text-[10px] text-[var(--color-text-muted)] uppercase font-bold">2nd → 3rd Year</span>
+                      <span className="text-lg font-bold text-[var(--color-accent)]">{rolloverPreview.year2To3Count}</span>
+                    </div>
+
+                    <div className="p-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-secondary)]/50 flex flex-col items-center">
+                      <span className="text-[10px] text-[var(--color-text-muted)] uppercase font-bold">3rd → 4th Year</span>
+                      <span className="text-lg font-bold text-[var(--color-accent)]">{rolloverPreview.year3To4Count}</span>
+                    </div>
+
+                    <div className="p-3 rounded-xl border border-amber-500/30 bg-amber-500/10 flex flex-col items-center">
+                      <span className="text-[10px] text-amber-500 uppercase font-bold">Graduating (6m Grace)</span>
+                      <span className="text-lg font-bold text-amber-500">{rolloverPreview.year4ToGraduatedCount}</span>
+                    </div>
+                  </div>
+
+                  {/* Batch Migration Summary */}
+                  <div className="p-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-secondary)]/30 flex flex-col gap-2">
+                    <span className="font-bold text-[var(--color-text-primary)] uppercase text-[10px] tracking-wider">
+                      Batch Migration Preview (Year 3 → Year 4)
+                    </span>
+                    {rolloverPreview.batchMigrationSummary?.length > 0 ? (
+                      <div className="space-y-1 text-[11px] text-[var(--color-text-secondary)]">
+                        {rolloverPreview.batchMigrationSummary.map((b, i) => (
+                          <div key={i} className="flex items-center justify-between">
+                            <span>• {b.batchName} ({b.studentCount} students)</span>
+                            <span className="text-[var(--color-accent)]">
+                              {b.targetYear4BatchExists ? '→ Existing Year 4 Batch' : '→ Will Auto-Create Year 4 Batch'}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="text-[11px] italic text-[var(--color-text-muted)]">No active Year 3 batches to migrate.</span>
+                    )}
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-600 leading-relaxed text-[11px]">
+                    ℹ️ <strong>6-Month Graduation Policy:</strong> 4th-year students transition to <em>Graduated Grace Period</em>. Their accounts remain fully active for 6 months (180 days) so they can retrieve placement documents, after which they are automatically archived.
+                  </div>
+                </div>
+              ) : null}
+
+              <div className="flex items-center justify-end gap-3 pt-2 border-t border-[var(--color-border)]">
+                <button
+                  disabled={executeLoading}
+                  onClick={() => setShowRolloverModal(false)}
+                  className="px-4 py-2 border border-[var(--color-border)] rounded-lg font-bold text-[var(--color-text-secondary)] hover:bg-[var(--color-surface-raised)]"
+                >
+                  Cancel
+                </button>
+                <button
+                  disabled={executeLoading || previewLoading}
+                  onClick={handleExecuteRollover}
+                  className="px-4 py-2 bg-[var(--color-accent)] text-[var(--color-text-inverse)] rounded-lg font-bold hover:bg-[var(--color-accent-hover)] transition-all flex items-center gap-2 disabled:opacity-50"
+                >
+                  {executeLoading ? 'Executing Rollover...' : 'Execute Department Rollover'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <style>{`
         .manage-batches {

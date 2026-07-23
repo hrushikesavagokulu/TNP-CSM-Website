@@ -30,6 +30,7 @@ function getAuthLimiter() {
     },
     standardHeaders: true,
     legacyHeaders:   false,
+    validate: false,
     // Store is constructed inside the factory fn — Redis is guaranteed ready by now
     store: new RedisStore({
       sendCommand: (...args) => getRedisClient().call(...args),
